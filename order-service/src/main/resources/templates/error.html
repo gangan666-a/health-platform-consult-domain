@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('出错了')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container narrow center">
+    <div class="state-box">
+        <div class="state-icon">⚠️</div>
+        <h1>出错了</h1>
+        <p th:text="${message}">操作未成功</p>
+        <p th:if="${detail}" class="muted small" th:text="${detail}"></p>
+        <div class="actions center">
+            <a class="btn btn-primary" href="javascript:history.back()">返回上一页</a>
+            <a class="btn btn-outline" th:href="@{/}">回到首页</a>
+        </div>
+    </div>
+</main>
+</body>
+</html>

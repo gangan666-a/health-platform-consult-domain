@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('收银台 - 模拟支付')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container narrow">
+    <h1 class="page-title">收银台</h1>
+    <div class="panel">
+        <div class="cashier-order">
+            <div>订单号：<strong th:text="${order.orderNo}">SO...</strong></div>
+            <div>应付金额：<span class="price large" th:text="'¥' + ${#numbers.formatDecimal(order.totalAmount, 1, 2)}">¥0.00</span></div>
+        </div>
+
+        <form class="form" th:action="@{'/order/' + ${order.orderNo} + '/pay'}" method="post" id="payForm"
+              th:attr="data-orderno=${order.orderNo}, data-amount=${order.totalAmount}">
+            <div class="form-group">
+                <label>选择支付方式</label>
+                <div class="pay-methods">
+                    <label class="pay-method">
+                        <input type="radio" name="payMethod" value="支付宝" checked> <span>💙 支付宝</span>
+                    </label>
+                    <label class="pay-method">
+                        <input type="radio" name="payMethod" value="微信支付"> <span>💚 微信支付</span>
+                    </label>
+                    <label class="pay-method">
+                        <input type="radio" name="payMethod" value="银行卡"> <span>🏦 银行卡</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 扫码支付（支付宝 / 微信） -->
+            <div id="qrPanel" class="pay-panel">
+                <div class="qr-wrap">
+                    <div id="qrCode" class="qr-box"></div>
+                    <div class="qr-tip" id="qrTip">请使用 <strong>支付宝</strong> 扫一扫完成支付</div>
+                </div>
+                <button type="button" id="qrPayBtn" class="btn btn-primary btn-lg btn-block">我已扫码完成支付</button>
+            </div>
+
+            <!-- 银行卡支付：先绑定 -->
+            <div id="cardPanel" class="pay-panel hidden">
+                <div id="cardBindStep">
+                    <div class="form-group">
+                        <label for="cardBank">选择银行</label>
+                        <select id="cardBank">
+                            <option value="工商银行">工商银行</option>
+                            <option value="建设银行">建设银行</option>
+                            <option value="招商银行">招商银行</option>
+                            <option value="农业银行">农业银行</option>
+                            <option value="中国银行">中国银行</option>
+                            <option value="交通银行">交通银行</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardNo">绑定银行卡号</label>
+                        <input id="cardNo" type="text" inputmode="numeric" placeholder="请输入 16~19 位银行卡号" maxlength="23">
+                        <span class="field-error" id="cardNoErr"></span>
+                    </div>
+                    <button type="button" id="bindBtn" class="btn btn-outline btn-block">绑定银行卡</button>
+                </div>
+
+                <div id="cardBoundStep" class="hidden">
+                    <div class="bound-card">
+                        <div class="bound-bank" id="boundBank">工商银行</div>
+                        <div class="bound-no" id="boundNo">**** **** **** 1234</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="payPwd">支付密码</label>
+                        <input id="payPwd" type="password" placeholder="请输入 6 位支付密码" maxlength="6">
+                        <span class="field-error" id="pwdErr"></span>
+                    </div>
+                </div>
+                <button type="button" id="cardPayBtn" class="btn btn-primary btn-lg btn-block">
+                    确认支付 ¥<span th:text="${#numbers.formatDecimal(order.totalAmount, 1, 2)}">0.00</span>
+                </button>
+            </div>
+
+            <input type="hidden" name="payBank" id="payBankH">
+            <input type="hidden" name="payCardNo" id="payCardNoH">
+        </form>
+    </div>
+    <p class="muted center">模拟支付：支付宝 / 微信走扫码，银行卡需先绑定再输入支付密码</p>
+</main>
+<script>
+(function () {
+    'use strict';
+    var orderNo = document.getElementById('payForm').dataset.orderno;
+    var methodInputs = document.querySelectorAll('input[name="payMethod"]');
+    var qrPanel = document.getElementById('qrPanel');
+    var cardPanel = document.getElementById('cardPanel');
+    var qrTip = document.getElementById('qrTip');
+
+    /* ---------- 伪随机数生成器（确定性，保证同一订单二维码一致） ---------- */
+    function hash(str) {
+        var h = 0;
+        for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) >>> 0; }
+        return h;
+    }
+    function mulberry32(a) {
+        return function () {
+            a |= 0; a = a + 0x6D2B79F5 | 0;
+            var t = Math.imul(a ^ a >>> 15, 1 | a);
+            t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        };
+    }
+    /* ---------- 绘制二维码（SVG，含三个定位角，模拟真实扫码） ---------- */
+    function drawQR(seedStr) {
+        var size = 29, cell = 7, total = size * cell;
+        var NS = 'http://www.w3.org/2000/svg';
+        var svg = document.getElementById('qrCode');
+        svg.setAttribute('viewBox', '0 0 ' + total + ' ' + total);
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100%');
+        svg.innerHTML = '';
+        var rnd = mulberry32(hash(seedStr));
+        var r;
+        r = document.createElementNS(NS, 'rect');
+        r.setAttribute('width', total); r.setAttribute('height', total); r.setAttribute('fill', '#fff');
+        svg.appendChild(r);
+        for (var y = 0; y < size; y++) {
+            for (var x = 0; x < size; x++) {
+                var inFinder = (x < 8 && y < 8) || (x > size - 9 && y < 8) || (x < 8 && y > size - 9);
+                if (inFinder) continue;
+                if (rnd() > 0.5) {
+                    r = document.createElementNS(NS, 'rect');
+                    r.setAttribute('x', x * cell); r.setAttribute('y', y * cell);
+                    r.setAttribute('width', cell); r.setAttribute('height', cell); r.setAttribute('fill', '#111');
+                    svg.appendChild(r);
+                }
+            }
+        }
+        function finder(cx, cy) {
+            var o = document.createElementNS(NS, 'rect');
+            o.setAttribute('x', cx * cell); o.setAttribute('y', cy * cell);
+            o.setAttribute('width', 7 * cell); o.setAttribute('height', 7 * cell); o.setAttribute('fill', '#111');
+            var w = document.createElementNS(NS, 'rect');
+            w.setAttribute('x', (cx + 1) * cell); w.setAttribute('y', (cy + 1) * cell);
+            w.setAttribute('width', 5 * cell); w.setAttribute('height', 5 * cell); w.setAttribute('fill', '#fff');
+            var c = document.createElementNS(NS, 'rect');
+            c.setAttribute('x', (cx + 2) * cell); c.setAttribute('y', (cy + 2) * cell);
+            c.setAttribute('width', 3 * cell); c.setAttribute('height', 3 * cell); c.setAttribute('fill', '#111');
+            svg.appendChild(o); svg.appendChild(w); svg.appendChild(c);
+        }
+        finder(0, 0); finder(size - 7, 0); finder(0, size - 7);
+    }
+
+    /* ---------- 切换支付方式 ---------- */
+    function switchMethod(method) {
+        if (method === '银行卡') {
+            qrPanel.classList.add('hidden');
+            cardPanel.classList.remove('hidden');
+        } else {
+            cardPanel.classList.add('hidden');
+            qrPanel.classList.remove('hidden');
+            qrTip.innerHTML = '请使用 <strong>' + method + '</strong> 扫一扫完成支付';
+            drawQR(orderNo + '|' + method);
+        }
+    }
+    methodInputs.forEach(function (input) {
+        input.addEventListener('change', function () { switchMethod(input.value); });
+    });
+
+    /* ---------- 银行卡号格式化：每 4 位一个空格 ---------- */
+    var cardNo = document.getElementById('cardNo');
+    cardNo.addEventListener('input', function () {
+        var digits = this.value.replace(/\D/g, '').slice(0, 19);
+        this.value = digits.replace(/(.{4})/g, '$1 ').trim();
+    });
+
+    /* ---------- 绑定银行卡 ---------- */
+    document.getElementById('bindBtn').addEventListener('click', function () {
+        var digits = cardNo.value.replace(/\s/g, '');
+        var err = document.getElementById('cardNoErr');
+        if (digits.length < 16 || digits.length > 19) {
+            err.textContent = '银行卡号应为 16~19 位数字';
+            return;
+        }
+        err.textContent = '';
+        document.getElementById('payBankH').value = document.getElementById('cardBank').value;
+        document.getElementById('payCardNoH').value = digits;
+        document.getElementById('boundBank').textContent = document.getElementById('cardBank').value;
+        document.getElementById('boundNo').textContent = '**** **** **** ' + digits.slice(-4);
+        document.getElementById('cardBindStep').classList.add('hidden');
+        document.getElementById('cardBoundStep').classList.remove('hidden');
+    });
+
+    /* ---------- 提交：扫码 ---------- */
+    document.getElementById('qrPayBtn').addEventListener('click', function () {
+        this.disabled = true;
+        this.textContent = '支付处理中…';
+        this.form.submit();
+    });
+
+    /* ---------- 提交：银行卡 ---------- */
+    document.getElementById('cardPayBtn').addEventListener('click', function () {
+        var pwd = document.getElementById('payPwd').value;
+        var err = document.getElementById('pwdErr');
+        if (pwd.length !== 6) {
+            err.textContent = '请输入 6 位支付密码';
+            return;
+        }
+        err.textContent = '';
+        this.disabled = true;
+        this.textContent = '支付处理中…';
+        this.form.submit();
+    });
+
+    /* 默认：支付宝扫码 */
+    switchMethod('支付宝');
+})();
+</script>
+</body>
+</html>

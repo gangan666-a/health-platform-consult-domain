@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('我的订单')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <h1 class="page-title">我的订单</h1>
+
+    <div th:if="${msg}" class="alert" th:text="${msg}"></div>
+    <div th:if="${#lists.isEmpty(orders)}" class="empty">还没有订单，去挑选心仪的商品吧～</div>
+
+    <div class="order-card" th:each="order : ${orders}">
+        <div class="order-card-head">
+            <span class="order-no" th:text="${order.orderNo}">SO...</span>
+            <span class="muted" th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm:ss')}">下单时间</span>
+            <span class="badge"
+                  th:classappend="${order.status.name()} == 'PAID' ? ' badge-paid' : (${order.status.name()} == 'CANCELLED' ? ' badge-cancelled' : ' badge-pending')"
+                  th:text="${order.status.label}">状态</span>
+        </div>
+        <div class="order-card-items">
+            <span th:each="item, st : ${order.items}">
+                <span th:text="${item.productName} + ' × ' + ${item.quantity}">商品 × 1</span><span th:if="${!st.last}">、</span>
+            </span>
+        </div>
+        <div class="order-card-foot">
+            <span class="price" th:text="'¥' + ${#numbers.formatDecimal(order.totalAmount, 1, 2)}">¥0.00</span>
+            <div class="actions">
+                <a class="btn btn-sm btn-outline" th:href="@{'/order/' + ${order.orderNo}}">查看订单</a>
+                <form th:if="${order.status.name()} == 'CREATED'" th:action="@{'/order/' + ${order.orderNo} + '/pay'}" method="get">
+                    <button class="btn btn-sm btn-primary" type="submit">去支付</button>
+                </form>
+                <form th:if="${order.status.name()} == 'CREATED'" th:action="@{'/order/' + ${order.orderNo} + '/cancel'}" method="post"
+                      onsubmit="return confirm('确认取消该订单？');">
+                    <button class="btn btn-sm btn-danger-ghost" type="submit">取消</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

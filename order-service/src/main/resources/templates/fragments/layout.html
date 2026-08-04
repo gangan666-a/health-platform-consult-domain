@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title}">simple-mall（AI 智能导购）</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header th:fragment="nav" class="site-header">
+    <nav class="nav container">
+        <a class="brand" th:href="@{/}">🛍️ simple-mall（AI 智能导购）</a>
+        <div class="nav-links">
+            <a th:href="@{/}">商品列表</a>
+            <a th:href="@{/orders}">我的订单</a>
+        </div>
+    </nav>
+</header>
+</body>
+</html>

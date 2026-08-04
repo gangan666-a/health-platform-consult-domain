@@ -1,0 +1,16 @@
+# Maven 构建产物
+target/
+*.class
+*.jar.original
+
+# 原单体项目（独立仓库，不属于本微服务仓库）
+simple-mall/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# 临时文件
+*.tmp
+*.log

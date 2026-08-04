@@ -1,0 +1,8 @@
+* text=auto
+
+# Windows 批处理需要 CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# shell 脚本保持 LF
+*.sh text eol=lf

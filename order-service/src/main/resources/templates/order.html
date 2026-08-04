@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('订单详情')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container narrow">
+    <h1 class="page-title">订单详情</h1>
+    <div class="panel">
+        <div class="order-head">
+            <div>
+                <div class="order-no">订单号 <strong th:text="${order.orderNo}">SO...</strong></div>
+                <div class="muted" th:text="'下单时间 ' + ${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm:ss')}">下单时间</div>
+            </div>
+            <span class="badge"
+                  th:classappend="${order.status.name()} == 'PAID' ? ' badge-paid' : (${order.status.name()} == 'CANCELLED' ? ' badge-cancelled' : ' badge-pending')"
+                  th:text="${order.status.label}">状态</span>
+        </div>
+
+        <table class="order-items">
+            <thead>
+            <tr><th>商品</th><th>单价 × 数量</th><th>小计</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${order.items}">
+                <td th:text="${item.productName}">商品名称</td>
+                <td class="muted" th:text="'¥' + ${#numbers.formatDecimal(item.unitPrice, 1, 2)} + ' × ' + ${item.quantity}">单价 × 数量</td>
+                <td class="price" th:text="'¥' + ${#numbers.formatDecimal(item.subtotal, 1, 2)}">小计</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="order-meta">
+            <p>收货人：<span th:text="${order.receiverName}">姓名</span>　<span th:text="${order.receiverPhone}">手机号</span></p>
+            <p>收货地址：<span th:text="${order.receiverAddress}">地址</span></p>
+            <p th:if="${order.status.name()} == 'PAID'">
+                支付方式：<span th:text="${order.payMethod}">方式</span>
+                　支付时间：<span th:text="${#temporals.format(order.paidAt, 'yyyy-MM-dd HH:mm:ss')}">时间</span>
+            </p>
+            <p th:if="${order.payBank}" th:text="'支付账户：' + ${order.payBank} + '（尾号 ' + ${order.payCardTail} + '）'">支付账户</p>
+        </div>
+
+        <div class="confirm-footer">
+            <div>合计：<span class="price large" th:text="'¥' + ${#numbers.formatDecimal(order.totalAmount, 1, 2)}">¥0.00</span></div>
+            <div class="actions">
+                <form th:if="${order.status.name()} == 'CREATED'" th:action="@{'/order/' + ${order.orderNo} + '/pay'}" method="get">
+                    <button class="btn btn-primary" type="submit">去支付</button>
+                </form>
+                <form th:if="${order.status.name()} == 'CREATED'" th:action="@{'/order/' + ${order.orderNo} + '/cancel'}" method="post"
+                      onsubmit="return confirm('确认取消该订单？');">
+                    <button class="btn btn-danger-ghost" type="submit">取消订单</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 同类商品推荐：下单后即可看到，推荐为空（服务未就绪）时整个区块不渲染 -->
+    <section class="recommend-section" th:if="${!#lists.isEmpty(similarRecommendations)}">
+        <div class="recommend-head">
+            <h2 class="page-title">🔄 同类商品推荐</h2>
+            <span class="recommend-tag">与您购买的商品同品类</span>
+        </div>
+        <div class="product-grid">
+            <div class="product-card" th:each="rec : ${similarRecommendations}">
+                <a class="card-thumb" th:href="@{'/product/' + ${rec.productId}}">
+                    <span class="thumb-emoji"
+                          th:if="${rec.imageUrl != null && !rec.imageUrl.startsWith('http')}"
+                          th:text="${rec.imageUrl}">📦</span>
+                    <img th:if="${rec.imageUrl != null && rec.imageUrl.startsWith('http')}"
+                         th:src="${rec.imageUrl}" alt="推荐商品">
+                </a>
+                <div class="card-body">
+                    <a class="card-name" th:href="@{'/product/' + ${rec.productId}}" th:text="${rec.productName}">商品名称</a>
+                    <p class="card-desc" th:text="${rec.reason}">推荐理由</p>
+                    <div class="card-meta">
+                        <span class="price" th:text="'¥' + ${#numbers.formatDecimal(rec.price, 1, 2)}">¥0.00</span>
+                        <span class="recommend-badge"
+                              th:text="${rec.source == 'ai' ? '🤖 AI 推荐' : '同类优选'}">推荐</span>
+                    </div>
+                    <div class="card-actions">
+                        <a class="btn btn-primary" th:href="@{/order/confirm(productId=${rec.productId}, quantity=1)}">立即购买</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <p><a class="link" th:href="@{/orders}">← 返回订单列表</a></p>
+</main>
+</body>
+</html>
