@@ -7,6 +7,7 @@ import com.example.mall.productservice.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -66,6 +67,10 @@ public class ProductService {
     }
 
     private ProductDTO toDTO(Product product) {
+        // P1-03：返回给下游的价格 ≤0 视为异常数据，拒绝透传（脏数据生成 0/负金额订单）
+        if (product.getPrice() == null || product.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("商品价格异常");
+        }
         ProductDTO dto = new ProductDTO();
         dto.setId(product.getId());
         dto.setName(product.getName());

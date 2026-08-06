@@ -18,7 +18,12 @@
 
         <form class="form" th:action="@{/order}" th:object="${form}" method="post">
             <input type="hidden" th:field="*{productId}">
-            <input type="hidden" th:field="*{quantity}">
+
+            <div class="form-group">
+                <label for="quantity">购买数量</label>
+                <input id="quantity" type="number" min="1" max="999" th:field="*{quantity}" placeholder="请输入购买数量（1-999）">
+                <span class="field-error" th:if="${#fields.hasErrors('quantity')}" th:errors="*{quantity}"></span>
+            </div>
 
             <div class="form-group">
                 <label for="receiverName">收货人</label>

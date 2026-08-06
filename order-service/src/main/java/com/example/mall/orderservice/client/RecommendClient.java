@@ -7,6 +7,7 @@ import com.example.mall.common.model.RecommendationItemDTO;
 import com.example.mall.common.model.RecommendationResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,8 +29,10 @@ public class RecommendClient {
 
     private final RestClient restClient;
 
-    public RecommendClient(@Value("${mall.recommend-service.url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public RecommendClient(@Value("${mall.recommend-service.url}") String baseUrl,
+                           @Qualifier("recommendRestClientBuilder") RestClient.Builder builder) {
+        // builder 为 RestClientConfig 注入的推荐专用实例（connect 3s / read 12s，给 DeepSeek 留宽限）
+        this.restClient = builder.baseUrl(baseUrl).build();
     }
 
     /** 互补推荐（支付成功页「你可能还需要」）：永不抛异常，失败时记日志并返回空列表 */

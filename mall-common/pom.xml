@@ -20,5 +20,10 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
         </dependency>
+        <!-- RecommendRequest 等 DTO 的 Bean Validation 注解（如 @NotNull），版本由 spring-boot-starter-parent 管理 -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
     </dependencies>
 </project>

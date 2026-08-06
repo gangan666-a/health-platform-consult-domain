@@ -6,21 +6,34 @@ import com.example.mall.common.model.OrderDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.time.Duration;
+
 /**
- * 订单服务调用方（payment-service → order-service）
+ * 订单服务调用方（payment-service → order-service）。
+ * RestClient 显式配置 connect/read 超时，避免下游慢响应无限阻塞（设计 §0 / 评审 P1-01）。
  */
 @Component
 public class OrderClient {
 
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
+
     private final RestClient restClient;
 
     public OrderClient(@Value("${mall.order-service.url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(CONNECT_TIMEOUT);
+        factory.setReadTimeout(READ_TIMEOUT);
+        this.restClient = RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestFactory(factory)
+                .build();
     }
 
     public OrderDTO getOrder(String orderNo) {

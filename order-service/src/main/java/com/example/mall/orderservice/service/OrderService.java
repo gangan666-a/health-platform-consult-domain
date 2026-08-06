@@ -11,6 +11,8 @@ import com.example.mall.orderservice.client.ProductClient;
 import com.example.mall.orderservice.model.Order;
 import com.example.mall.orderservice.model.OrderItem;
 import com.example.mall.orderservice.repository.OrderRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,8 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private static final DateTimeFormatter ORDER_NO_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
@@ -64,6 +68,10 @@ public class OrderService {
             throw new BusinessException("购买数量必须大于 0");
         }
         ProductDTO product = productClient.getProduct(productId);
+        // 商品价格异常（null/≤0）拒绝下单，避免产生零/负金额订单（PRD EX-6）
+        if (product.getPrice() == null || product.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("商品价格异常，无法下单");
+        }
         if (product.getStock() < quantity) {
             throw new BusinessException("库存不足，当前库存仅 " + product.getStock() + " 件");
         }
@@ -72,6 +80,10 @@ public class OrderService {
 
         BigDecimal unitPrice = product.getPrice();
         BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(quantity));
+        // 总金额必须为正（quantity≥1 且 unitPrice>0 时天然成立，防御脏数据）
+        if (totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("订单金额异常，无法下单");
+        }
 
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
@@ -94,11 +106,18 @@ public class OrderService {
         try {
             return orderRepository.save(order);
         } catch (RuntimeException ex) {
-            // 补偿：本地保存失败时回补库存（best-effort）
+            // 补偿：本地保存失败时回补库存（best-effort），先记录落库失败便于对账
+            log.error("下单落库失败，开始补偿回补库存。orderNo={}, productId={}, quantity={}",
+                    order.getOrderNo(), productId, quantity, ex);
             try {
                 productClient.restoreStock(productId, quantity);
-            } catch (RuntimeException ignored) {
-                // 补偿也失败则交由人工对账
+            } catch (RuntimeException restoreEx) {
+                // 回补也失败：库存已扣但订单未落库，形成"已扣未补"悬挂库存。
+                // 取舍：不在此抛出新异常（本地事务已回滚，抛出根因 ex 即可，避免掩盖主因），
+                // 仅记 ERROR 日志留下可对账痕迹（含订单号/商品/数量，检索日志即可人工对账），
+                // 保证不产生脏数据、路径可观测。对账兜底见方案 §9.3 日志规范 / 评审 R-07。
+                log.error("库存回补失败，请人工对账。orderNo={}, productId={}, quantity={}",
+                        order.getOrderNo(), productId, quantity, restoreEx);
             }
             throw ex;
         }
@@ -127,7 +146,17 @@ public class OrderService {
     }
 
     /**
-     * 取消订单：仅待支付订单可取消，并逐明细回补库存。
+     * 取消订单：仅待支付订单可取消。先落库 CANCELLED 成功、后逐明细回补库存。
+     *
+     * 顺序取舍（对齐 createOrder 的补偿语义，评审 P1"取消孤儿回补不对称"）：
+     * createOrder 是"先扣库存→后落库，落库失败→补偿回补"；cancelOrder 反向采用
+     * "先落库 CANCELLED→后回补库存"：
+     *  - save 成功：订单已置 CANCELLED（终态），状态机拒绝再次取消，堵死"二次回补虚增库存"最坏路径；
+     *  - save 失败：本地事务回滚，订单在库仍为 CREATED，且回补代码根本不会执行——
+     *    不会产生"已回补未取消"孤儿，也避免了用户再次取消/继续支付一个本应取消的订单；
+     *  - 回补失败：订单已 CANCELLED 已提交、仅个别商品库存未回补（单边缺口）。
+     *    取舍：不抛新异常（取消主流程已成功，抛异常会回滚"已取消"且掩盖根因），仅记 ERROR 日志
+     *    （含 orderNo/productId/quantity）留下可对账痕迹，与 createOrder 补偿失败的取舍一致（P1-02 / R-07）。
      */
     @Transactional
     public Order cancelOrder(String orderNo) {
@@ -135,12 +164,21 @@ public class OrderService {
         if (order.getStatus() != OrderStatus.CREATED) {
             throw new BusinessException(order.getStatus() == OrderStatus.PAID ? "订单已支付，无法取消" : "订单已取消");
         }
-        for (OrderItem item : order.getItems()) {
-            productClient.restoreStock(item.getProductId(), item.getQuantity());
-        }
         order.setStatus(OrderStatus.CANCELLED);
         order.setCancelledAt(LocalDateTime.now());
-        return orderRepository.save(order);
+        orderRepository.save(order);
+        for (OrderItem item : order.getItems()) {
+            try {
+                productClient.restoreStock(item.getProductId(), item.getQuantity());
+            } catch (RuntimeException restoreEx) {
+                // 回补失败：订单已 CANCELLED 且将提交，库存未回补形成单边缺口。
+                // 取舍：不抛新异常（避免把"已取消成功"回滚、且不掩盖回补根因），
+                // 仅记 ERROR 日志（订单号/商品/数量，检索日志即可人工对账）。
+                log.error("取消订单回补库存失败，请人工对账。orderNo={}, productId={}, quantity={}",
+                        order.getOrderNo(), item.getProductId(), item.getQuantity(), restoreEx);
+            }
+        }
+        return order;
     }
 
     /**

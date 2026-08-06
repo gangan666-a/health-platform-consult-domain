@@ -22,6 +22,7 @@ public class PaymentExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiError handleOther(Exception ex) {
-        return new ApiError("支付服务内部错误：" + ex.getMessage());
+        // 不回显 ex.getMessage()，避免异常详情/请求体（含卡号等敏感信息）泄露（评审 P2）
+        return new ApiError("支付服务内部错误，请稍后重试");
     }
 }

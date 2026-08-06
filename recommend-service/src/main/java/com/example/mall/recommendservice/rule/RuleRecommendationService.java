@@ -170,19 +170,23 @@ public class RuleRecommendationService {
                 .thenComparing(c -> c.product.getId()));
 
         List<RecommendationItemDTO> result = new ArrayList<>();
+        Set<Long> picked = new LinkedHashSet<>();
         for (Candidate c : candidates) {
             if (result.size() >= topN) {
                 break;
             }
-            if (c.score > 0) {
+            if (c.score > 0 && c.product.getId() != null && picked.add(c.product.getId())) {
                 result.add(toItem(c.product, reason(c.anchorName, c.product.getName())));
             }
         }
+        // 热销补足：跳过已在互补分阶段选中的商品，保证输出不重复（设计 §5.5 去重补足 topN）
         for (Candidate c : candidates) {
             if (result.size() >= topN) {
                 break;
             }
-            result.add(toItem(c.product, String.format(FILL_REASON, c.product.getName())));
+            if (c.product.getId() != null && picked.add(c.product.getId())) {
+                result.add(toItem(c.product, String.format(FILL_REASON, c.product.getName())));
+            }
         }
         return result;
     }

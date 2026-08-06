@@ -20,8 +20,9 @@ public class ProductClient {
 
     private final RestClient restClient;
 
-    public ProductClient(@Value("${mall.product-service.url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public ProductClient(@Value("${mall.product-service.url}") String baseUrl, RestClient.Builder builder) {
+        // builder 为 RestClientConfig 注入的带超时配置的实例（connect 3s / read 5s）
+        this.restClient = builder.baseUrl(baseUrl).build();
     }
 
     public List<ProductDTO> listProducts() {

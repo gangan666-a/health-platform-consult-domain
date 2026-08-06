@@ -53,6 +53,11 @@ public class AiRecommendationService {
     }
 
     private List<RecommendationItemDTO> recommendInternal(RecommendRequest request, boolean similar) {
+        // 统一 topN 语义：≤0 视为 0 即返回空（与编排层一致），避免向模型请求 0 条
+        if (props.getTopN() <= 0) {
+            log.info("topN 配置为 {}（≤0），AI 推荐关闭，交由规则推荐", props.getTopN());
+            return List.of();
+        }
         if (!deepSeekClient.isEnabled()) {
             log.info("未配置 deepseek.api-key，AI 推荐关闭，交由规则推荐");
             return List.of();
@@ -136,6 +141,10 @@ public class AiRecommendationService {
         // 第 4 层仅在同类模式且能解析到已购品类时启用
         boolean enforceCategory = similar && !purchasedCategories.isEmpty();
 
+        // null/空白 content 直接返回空（回退规则），不依赖外层 catch 吞 NPE
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
         String json = stripCodeFence(raw);
         JsonNode root = objectMapper.readTree(json);
         JsonNode arr = root.path("recommendations");

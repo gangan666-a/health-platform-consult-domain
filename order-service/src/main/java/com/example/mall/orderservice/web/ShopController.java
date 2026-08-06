@@ -24,6 +24,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 网页（BFF）：所有页面入口都在 order-service，商品/支付数据通过内部服务获取。
@@ -146,15 +147,25 @@ public class ShopController {
     /** 支付成功页：展示订单 + AI 智能导购推荐（同类 + 互补，推荐失败不影响本页，区块自动隐藏） */
     @GetMapping("/order/{orderNo}/pay/success")
     public String paySuccess(@PathVariable String orderNo, Model model) {
-        model.addAttribute("order", orderService.findOrderByOrderNo(orderNo));
+        Order order = orderService.findOrderByOrderNo(orderNo);
+        // 状态机一致：仅已支付订单展示支付成功页，其余（CREATED/CANCELLED）重定向回订单详情
+        if (order.getStatus() != OrderStatus.PAID) {
+            return "redirect:/order/" + orderNo;
+        }
+        model.addAttribute("order", order);
         // AI 智能导购：把已购商品 + 全量目录交给推荐服务，挑出同类与互补商品
         List<OrderItemDTO> purchasedItems = orderService.listOrderItems(orderNo);
         List<ProductDTO> catalog = orderService.listProducts();
-        // 两次推荐并行调用，避免两个 DeepSeek 请求串行拖慢页面渲染
+        // 两次推荐并行调用，避免两个 DeepSeek 请求串行拖慢页面渲染；
+        // orTimeout(2s)：推荐慢响应/超时降级为空列表，页面照常渲染（NFR-10 页面渲染 ≤3s，评审 P1-01）
         CompletableFuture<List<RecommendationItemDTO>> similarFuture =
-                CompletableFuture.supplyAsync(() -> recommendClient.recommendSimilar(purchasedItems, catalog));
+                CompletableFuture.supplyAsync(() -> recommendClient.recommendSimilar(purchasedItems, catalog))
+                        .orTimeout(2, TimeUnit.SECONDS)
+                        .exceptionally(ex -> List.of());
         CompletableFuture<List<RecommendationItemDTO>> complementFuture =
-                CompletableFuture.supplyAsync(() -> recommendClient.recommend(purchasedItems, catalog));
+                CompletableFuture.supplyAsync(() -> recommendClient.recommend(purchasedItems, catalog))
+                        .orTimeout(2, TimeUnit.SECONDS)
+                        .exceptionally(ex -> List.of());
         model.addAttribute("similarRecommendations", similarFuture.join());
         model.addAttribute("recommendations", complementFuture.join());
         return "pay-success";

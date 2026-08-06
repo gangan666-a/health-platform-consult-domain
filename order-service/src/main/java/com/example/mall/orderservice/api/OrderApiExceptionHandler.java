@@ -23,6 +23,7 @@ public class OrderApiExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiError handleOther(Exception ex) {
-        return new ApiError("订单服务内部错误：" + ex.getMessage());
+        // 统一错误体 {"message":...}，且不回显 ex.getMessage()，防内部信息泄露（评审 P2-04）
+        return new ApiError("订单服务内部错误，请稍后重试");
     }
 }

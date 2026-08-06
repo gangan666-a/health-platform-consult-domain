@@ -20,12 +20,11 @@ public class GlobalExceptionHandler {
         return mv;
     }
 
-    /** 兜底异常 */
+    /** 兜底异常：仅给用户安全通用文案，不回显异常内部信息（防内部信息泄露，评审 P2-04） */
     @ExceptionHandler(Exception.class)
     public ModelAndView handleOther(Exception ex) {
         ModelAndView mv = new ModelAndView("error");
         mv.addObject("message", "系统繁忙，请稍后重试");
-        mv.addObject("detail", ex.toString());
         return mv;
     }
 }

@@ -34,10 +34,14 @@ public class ProductController {
         return productService.getProduct(id);
     }
 
-    /** 扣减库存（下单时，order-service 调用） */
+    /**
+     * 扣减库存（下单时，order-service 调用）。
+     * 契约收紧（QA-P2）：quantity 必填、正整数；缺参/非法由绑定层与异常处理器统一 400，
+     * 不再静默默认 1（避免调用方漏传被悄悄扣 1 件）。
+     */
     @PostMapping("/{id}/stock/deduct")
     public ProductDTO deduct(@PathVariable Long id,
-                             @RequestParam(name = "quantity", defaultValue = "1") int quantity) {
+                             @RequestParam(name = "quantity") int quantity) {
         return productService.deductStock(id, quantity);
     }
 

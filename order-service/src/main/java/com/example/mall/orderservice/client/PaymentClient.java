@@ -19,8 +19,9 @@ public class PaymentClient {
 
     private final RestClient restClient;
 
-    public PaymentClient(@Value("${mall.payment-service.url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    public PaymentClient(@Value("${mall.payment-service.url}") String baseUrl, RestClient.Builder builder) {
+        // builder 为 RestClientConfig 注入的带超时配置的实例（connect 3s / read 5s）
+        this.restClient = builder.baseUrl(baseUrl).build();
     }
 
     public PaymentDTO executePayment(String orderNo, String payMethod, String payBank, String payCardNo) {
