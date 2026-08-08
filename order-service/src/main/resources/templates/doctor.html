@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('医生工作台')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <h1 class="page-title">👨‍⚕️ 医生工作台</h1>
+
+    <div th:if="${#lists.isEmpty(sessions)}" class="empty">暂无问诊会话，等待用户发起在线问诊…</div>
+
+    <div class="order-card" th:each="s : ${sessions}">
+        <div class="order-card-head">
+            <span class="card-name" th:text="${s.productName}">药品</span>
+            <span class="badge"
+                  th:classappend="${s.status.name() == 'PRESCRIPTION_ISSUED' ? ' badge-paid' : (s.status.name() == 'ENDED' || s.status.name() == 'EXPIRED' ? ' badge-cancelled' : ' badge-pending')}"
+                  th:text="${s.status.label}">状态</span>
+        </div>
+        <div class="order-card-items">
+            <span>会话 ID：<span th:text="${s.sessionId}">1</span></span>
+            <span th:if="${s.doctorName != null}" th:text="'　医生：' + ${s.doctorName}">医生</span>
+            <span th:if="${s.doctorName == null}" class="muted">　待接单</span>
+        </div>
+        <div class="order-card-foot">
+            <span class="muted small" th:text="'发起于 ' + ${#dates.format(s.createdAt, 'MM-dd HH:mm')}"></span>
+            <div class="actions">
+                <form th:if="${s.status.name() == 'WAITING'}"
+                      th:action="@{'/doctor/' + ${s.sessionId} + '/accept'}" method="post">
+                    <button class="btn btn-sm btn-primary" type="submit">接单</button>
+                </form>
+                <a th:if="${s.status.name() != 'WAITING'}" class="btn btn-sm btn-outline"
+                   th:href="@{'/consult/' + ${s.sessionId} + '?role=doctor'}">进入问诊</a>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

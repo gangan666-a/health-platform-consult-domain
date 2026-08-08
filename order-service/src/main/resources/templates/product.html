@@ -13,20 +13,54 @@
                  th:src="${product.imageUrl}" alt="商品图片">
         </div>
         <div class="detail-info">
-            <h1 class="detail-name" th:text="${product.name}">商品名称</h1>
+            <h1 class="detail-name">
+                <span th:text="${product.name}">商品名称</span>
+                <span class="rx-badge" th:if="${product.rxFlag}" th:title="处方药：需在线问诊开具处方后方可购买">处方药</span>
+            </h1>
             <p class="detail-desc" th:text="${product.description}">商品描述</p>
             <div class="detail-price">
                 <span class="price large" th:text="'¥' + ${#numbers.formatDecimal(product.price, 1, 2)}">¥0.00</span>
                 <span class="stock" th:text="'库存 ' + ${product.stock} + ' 件'">库存 0 件</span>
             </div>
-            <form class="buy-form" th:action="@{/order/confirm(productId=${product.id}, quantity=1)}" method="get">
+            <!-- 处方药（Rx）禁止直接购买：仅 OTC/普通商品渲染该表单（FR-D1 / AC-D1-3） -->
+            <form class="buy-form" th:if="${!product.rxFlag}" th:action="@{/order/confirm(productId=${product.id}, quantity=1)}" method="get">
                 <label for="qty">购买数量</label>
                 <input id="qty" type="number" name="quantity" value="1" min="1" th:max="${product.stock}">
                 <button class="btn btn-primary btn-lg" type="submit">立即购买</button>
             </form>
+            <!-- 处方药：在线问诊购药（创建/复用问诊会话 → 进入聊天页开方 → 凭处方号下单） -->
+            <div class="rx-consult" th:if="${product.rxFlag}">
+                <button class="btn btn-outline btn-lg" type="button"
+                        th:attr="data-product-id=${product.id}, data-product-name=${product.name}"
+                        onclick="startConsult(this)">🏥 在线问诊购药</button>
+                <p class="muted small">处方药需医生在线问诊开具处方后凭处方单号购买（fail-closed：未开方不可下单）</p>
+            </div>
             <a class="link" th:href="@{/}">← 返回商品列表</a>
         </div>
     </div>
 </main>
+<script>
+    // 在线问诊购药：创建/复用问诊会话 → 跳转聊天页（用户视角）
+    function startConsult(btn) {
+        var productId = btn.getAttribute('data-product-id');
+        var productName = btn.getAttribute('data-product-name');
+        btn.disabled = true;
+        fetch('/api/orders/consult/sessions', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({productId: Number(productId), productName: productName})
+        }).then(function (resp) {
+            return resp.json().then(function (data) {
+                if (!resp.ok) {
+                    throw new Error(data.message || '创建问诊会话失败');
+                }
+                window.location.href = '/consult/' + data.sessionId + '?role=user';
+            });
+        }).catch(function (err) {
+            alert(err.message || '创建问诊会话失败');
+            btn.disabled = false;
+        });
+    }
+</script>
 </body>
 </html>

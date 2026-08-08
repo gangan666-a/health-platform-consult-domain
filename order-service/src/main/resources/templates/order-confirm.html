@@ -9,7 +9,10 @@
         <div class="confirm-item">
             <span class="thumb-emoji" th:text="${product.imageUrl ?: '📦'}">📦</span>
             <div class="grow">
-                <div class="card-name" th:text="${product.name}">商品名称</div>
+                <div class="card-name">
+                    <span th:text="${product.name}">商品名称</span>
+                    <span class="rx-badge" th:if="${product.rxFlag}">处方药</span>
+                </div>
                 <div class="muted"
                      th:text="'单价 ¥' + ${#numbers.formatDecimal(product.price, 1, 2)} + ' × ' + ${quantity}">单价 × 数量</div>
             </div>
@@ -39,6 +42,18 @@
                 <label for="receiverAddress">收货地址</label>
                 <textarea id="receiverAddress" th:field="*{receiverAddress}" rows="3" placeholder="请输入详细收货地址"></textarea>
                 <span class="field-error" th:if="${#fields.hasErrors('receiverAddress')}" th:errors="*{receiverAddress}"></span>
+            </div>
+
+            <!-- 处方药：必须填写处方单号（fail-closed，PRD FR-D1）；非处方药隐藏 -->
+            <div class="form-group rx-prescription-group" th:if="${product.rxFlag}">
+                <div class="rx-hint">
+                    <span>🔖 处方药需凭医生开具的处方单号购买</span>
+                    <a class="link small" th:href="@{'/product/' + ${product.id}}">← 前往在线问诊</a>
+                </div>
+                <label for="prescriptionNo">处方单号</label>
+                <input id="prescriptionNo" type="text" th:field="*{prescriptionNo}" placeholder="如 RX202608071010100001"
+                       maxlength="32">
+                <span class="field-error" th:if="${#fields.hasErrors('prescriptionNo')}" th:errors="*{prescriptionNo}"></span>
             </div>
 
             <div class="confirm-footer">

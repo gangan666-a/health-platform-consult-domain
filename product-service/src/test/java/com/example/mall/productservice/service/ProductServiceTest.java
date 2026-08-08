@@ -17,8 +17,10 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
@@ -68,6 +70,19 @@ class ProductServiceTest {
     }
 
     @Test
+    @DisplayName("正常：列表 DTO 逐项携带 rxFlag（Rx=true / OTC=false，PRD FR-D1）")
+    void listProducts_dtoCarriesRxFlag() {
+        Product rx = product(1L, new BigDecimal("100.00"), 5);
+        rx.setRxFlag(true);
+        Product otc = product(2L, new BigDecimal("200.00"), 8);
+        when(productRepository.findAllByOrderByIdAsc()).thenReturn(List.of(rx, otc));
+
+        List<ProductDTO> list = productService.listProducts();
+        assertTrue(list.get(0).isRxFlag(), "Rx 处方药 rxFlag 应为 true");
+        assertFalse(list.get(1).isRxFlag(), "OTC 非处方药 rxFlag 应为 false");
+    }
+
+    @Test
     @DisplayName("异常：列表含价格≤0 脏数据 → 抛「商品价格异常」（EX-6 补强）")
     void listProducts_priceInvalid() {
         when(productRepository.findAllByOrderByIdAsc())
@@ -87,6 +102,24 @@ class ProductServiceTest {
         assertEquals(1L, dto.getId());
         assertEquals("手机", dto.getCategory());
         assertEquals(5, dto.getStock());
+    }
+
+    @Test
+    @DisplayName("正常：详情 DTO 携带 rxFlag（Rx=true）")
+    void getProduct_dtoCarriesRxFlag() {
+        Product rx = product(1L, new BigDecimal("100.00"), 5);
+        rx.setRxFlag(true);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(rx));
+        assertTrue(productService.getProduct(1L).isRxFlag());
+    }
+
+    @Test
+    @DisplayName("fail-closed：老商品无 Rx 标记（默认 false）→ 一律按 OTC，不被误判为处方药（AC-D1-5）")
+    void legacyProductWithoutRxFlag_defaultsToOtc() {
+        // Product.rxFlag 字段默认 false，未显式 set → DTO 映射为 false（OTC）
+        when(productRepository.findById(1L))
+                .thenReturn(Optional.of(product(1L, new BigDecimal("100.00"), 5)));
+        assertFalse(productService.getProduct(1L).isRxFlag());
     }
 
     @Test

@@ -79,6 +79,7 @@ public class ProductService {
         dto.setStock(product.getStock());
         dto.setImageUrl(product.getImageUrl());
         dto.setCategory(product.getCategory());
+        dto.setRxFlag(product.isRxFlag());
         dto.setCreatedAt(product.getCreatedAt());
         return dto;
     }

@@ -41,6 +41,14 @@ public class Product {
     @Column(length = 50)
     private String category;
 
+    /**
+     * 是否处方药（Rx）：true=处方药（须凭有效处方才能购买），false=OTC 非处方药（可普通购买）。
+     * fail-closed 默认 false：老库缺失 Rx 标记 / ddl-auto=update 新列回填一律按 OTC 处理，
+     * 绝不允许老数据被误判为处方药（PRD FR-D1 / AC-D1-5）。种子数据负责按商品名回填。
+     */
+    @Column(name = "rx_flag", nullable = false)
+    private boolean rxFlag = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -115,6 +123,14 @@ public class Product {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public boolean isRxFlag() {
+        return rxFlag;
+    }
+
+    public void setRxFlag(boolean rxFlag) {
+        this.rxFlag = rxFlag;
     }
 
     public LocalDateTime getCreatedAt() {

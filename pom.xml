@@ -23,6 +23,7 @@
         <module>order-service</module>
         <module>payment-service</module>
         <module>recommend-service</module>
+        <module>consult-service</module>
     </modules>
 
     <properties>

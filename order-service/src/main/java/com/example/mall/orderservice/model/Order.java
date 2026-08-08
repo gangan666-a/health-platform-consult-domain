@@ -44,6 +44,10 @@ public class Order {
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
+    /** 处方单号（处方药购药时绑定，非处方药为 null） */
+    @Column(name = "prescription_no", length = 32)
+    private String prescriptionNo;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private OrderStatus status;
@@ -119,6 +123,14 @@ public class Order {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public String getPrescriptionNo() {
+        return prescriptionNo;
+    }
+
+    public void setPrescriptionNo(String prescriptionNo) {
+        this.prescriptionNo = prescriptionNo;
     }
 
     public OrderStatus getStatus() {

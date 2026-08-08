@@ -1,17 +1,28 @@
 package com.example.mall.productservice;
 
+import com.example.mall.common.model.ProductDTO;
 import com.example.mall.productservice.model.Product;
 import com.example.mall.productservice.repository.ProductRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * ProductService 功能/集成测试（@SpringBootTest + MockMvc + H2 内存库）。
  * - src/test/resources/application.properties 用 H2 覆盖主配置，不连外部 MySQL；
- * - DataInitializer 种子数据保留（真实上下文验证列表有数据，31 个商品）；
+ * - DataInitializer 种子数据保留（真实上下文验证列表有数据，39 个商品：31 个 M1 + 8 个药品）；
  * - 每个测试方法 @Transactional，结束时回滚，避免用例间状态泄漏。
  */
 @SpringBootTest
@@ -43,14 +54,81 @@ class ProductFunctionalTest {
     }
 
     @Test
-    @DisplayName("真实上下文：列表有种子数据（31 个商品），字段完整")
+    @DisplayName("真实上下文：列表有种子数据（39 个商品：31 M1 + 8 药品），字段完整，非药品 rxFlag=false")
     void list_hasSeedData() throws Exception {
         mockMvc.perform(get("/api/products"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(31))
+                .andExpect(jsonPath("$.length()").value(39))
                 .andExpect(jsonPath("$[0].name").value("iPhone 15 Pro"))
                 .andExpect(jsonPath("$[0].category").value("手机"))
-                .andExpect(jsonPath("$[0].price").value(7999.00));
+                .andExpect(jsonPath("$[0].price").value(7999.00))
+                .andExpect(jsonPath("$[0].rxFlag").value(false));
+    }
+
+    @Test
+    @DisplayName("真实上下文：药品品类种子 OTC/Rx 标记正确（FR-D1 / AC-D1-1，DTO 序列化 rxFlag）")
+    void drugSeeds_rxFlag() throws Exception {
+        // 仓库按名取 id，再走 REST 详情断言 rxFlag 序列化（避免 jsonPath 过滤器表达式解析中文的兼容问题）
+        Long amoxId = productRepository.findAll().stream()
+                .filter(p -> "阿莫西林胶囊".equals(p.getName()))
+                .findFirst().orElseThrow().getId();
+        Long ganmaoId = productRepository.findAll().stream()
+                .filter(p -> "感冒灵颗粒".equals(p.getName()))
+                .findFirst().orElseThrow().getId();
+
+        // Rx 处方药：详情 DTO 序列化 rxFlag=true，品类=药品
+        mockMvc.perform(get("/api/products/{id}", amoxId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rxFlag").value(true))
+                .andExpect(jsonPath("$.category").value("药品"));
+        // OTC 非处方药：rxFlag=false
+        mockMvc.perform(get("/api/products/{id}", ganmaoId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rxFlag").value(false));
+
+        // 种子回填完整性：8 个药品中 4 个 Rx = true、4 个 OTC = false
+        Map<String, Boolean> byName = productRepository.findAll().stream()
+                .collect(Collectors.toMap(Product::getName, Product::isRxFlag));
+        assertEquals(Boolean.TRUE, byName.get("阿莫西林胶囊"));
+        assertEquals(Boolean.TRUE, byName.get("盐酸左氧氟沙星片"));
+        assertEquals(Boolean.TRUE, byName.get("硝苯地平缓释片"));
+        assertEquals(Boolean.TRUE, byName.get("布洛芬缓释胶囊"));
+        assertEquals(Boolean.FALSE, byName.get("感冒灵颗粒"));
+        assertEquals(Boolean.FALSE, byName.get("维生素C片"));
+        assertEquals(Boolean.FALSE, byName.get("蒙脱石散"));
+        assertEquals(Boolean.FALSE, byName.get("板蓝根颗粒"));
+    }
+
+    /**
+     * 真实上下文：列表 DTO 全量序列化 rxFlag。
+     * Rx/OTC 各抽查一个种子商品断言 rxFlag 正确；药品品类 8 项中 4 Rx=4 OTC，
+     * 若任一药品项 rxFlag 缺失/错位（如被误判为处方药）此断言即失败（PRD FR-D1 / AC-D1-5 fail-closed）。
+     */
+    @Test
+    @DisplayName("真实上下文：列表 DTO 携带 rxFlag（Rx/OTC 抽查 + 药品品类 4:4 无缺失）")
+    void list_drugItemsCarryRxFlag() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/products"))
+                .andExpect(status().isOk())
+                .andReturn();
+        List<ProductDTO> list = new ObjectMapper().findAndRegisterModules().readValue(
+                result.getResponse().getContentAsString(StandardCharsets.UTF_8),
+                new TypeReference<List<ProductDTO>>() {
+                });
+        assertFalse(list.isEmpty());
+
+        // 药品品类 8 项全部携带 rxFlag，且 Rx:OTC = 4:4（无缺失/无错位）
+        List<ProductDTO> drugs = list.stream()
+                .filter(p -> "药品".equals(p.getCategory()))
+                .toList();
+        assertEquals(8, drugs.size());
+        assertEquals(4, drugs.stream().filter(ProductDTO::isRxFlag).count());
+
+        // Rx 抽查：阿莫西林胶囊 → true
+        assertTrue(list.stream().filter(p -> "阿莫西林胶囊".equals(p.getName()))
+                .findFirst().orElseThrow().isRxFlag());
+        // OTC 抽查：感冒灵颗粒 → false
+        assertFalse(list.stream().filter(p -> "感冒灵颗粒".equals(p.getName()))
+                .findFirst().orElseThrow().isRxFlag());
     }
 
     @Test

@@ -56,10 +56,11 @@ public class ShopController {
         return "product";
     }
 
-    /** 确认订单：展示商品与数量，填写收货信息 */
+    /** 确认订单：展示商品与数量，填写收货信息（处方药回填已选处方单号） */
     @GetMapping("/order/confirm")
     public String confirmOrder(@RequestParam Long productId,
                                @RequestParam(defaultValue = "1") int quantity,
+                               @RequestParam(required = false) String prescriptionNo,
                                Model model) {
         ProductDTO product = orderService.findProduct(productId);
         if (quantity < 1) {
@@ -72,6 +73,10 @@ public class ShopController {
         OrderForm form = new OrderForm();
         form.setProductId(productId);
         form.setQuantity(quantity);
+        // 处方药：把「在线问诊开方后跳转」携带的处方单号回填到下单表单（FR-D3 快捷购药链路）
+        if (product.isRxFlag() && prescriptionNo != null && !prescriptionNo.isBlank()) {
+            form.setPrescriptionNo(prescriptionNo);
+        }
 
         model.addAttribute("product", product);
         model.addAttribute("quantity", quantity);
@@ -80,21 +85,30 @@ public class ShopController {
         return "order-confirm";
     }
 
-    /** 提交订单 */
+    /** 提交订单（处方药需携带处方单号，fail-closed PRD FR-D1） */
     @PostMapping("/order")
     public String createOrder(@Valid @ModelAttribute("form") OrderForm form,
                               BindingResult bindingResult,
                               Model model) {
+        ProductDTO product = orderService.findProduct(form.getProductId());
+        int quantity = form.getQuantity() == null ? 1 : form.getQuantity();
         if (bindingResult.hasErrors()) {
-            ProductDTO product = orderService.findProduct(form.getProductId());
-            int quantity = form.getQuantity() == null ? 1 : form.getQuantity();
+            model.addAttribute("product", product);
+            model.addAttribute("quantity", quantity);
+            model.addAttribute("total", product.getPrice().multiply(BigDecimal.valueOf(quantity)));
+            return "order-confirm";
+        }
+        // Rx 处方药必须填写处方单号：单字段错误回填确认页（th:errors 上屏），而非走 error 页
+        if (product.isRxFlag() && (form.getPrescriptionNo() == null || form.getPrescriptionNo().isBlank())) {
+            bindingResult.rejectValue("prescriptionNo", "rxRequired", "处方药必须填写处方单号");
             model.addAttribute("product", product);
             model.addAttribute("quantity", quantity);
             model.addAttribute("total", product.getPrice().multiply(BigDecimal.valueOf(quantity)));
             return "order-confirm";
         }
         Order order = orderService.createOrder(form.getProductId(), form.getQuantity(),
-                form.getReceiverName(), form.getReceiverPhone(), form.getReceiverAddress());
+                form.getReceiverName(), form.getReceiverPhone(), form.getReceiverAddress(),
+                form.getPrescriptionNo());
         return "redirect:/order/" + order.getOrderNo();
     }
 

@@ -68,6 +68,12 @@ class ShopControllerTest {
         return p;
     }
 
+    private ProductDTO rxProduct(Long id, String name, BigDecimal price, int stock) {
+        ProductDTO p = product(id, name, price, stock);
+        p.setRxFlag(true);
+        return p;
+    }
+
     private Order order(OrderStatus status, String orderNo) {
         Order o = new Order();
         o.setId(1L);
@@ -152,6 +158,48 @@ class ShopControllerTest {
                 .andExpect(content().string(containsString("商品不存在")));
     }
 
+    /* ---- FR-D1 Rx 药品详情页：在线问诊购药 / OTC 普通购买 ---- */
+
+    /** Rx 药品详情：展示「处方药」徽标 + 明确文案 + 「在线问诊购药」入口（AC-D1-3） */
+    @Test
+    void viewProduct_rx_showsConsultEntryAndRxBadge() throws Exception {
+        when(orderService.findProduct(1L)).thenReturn(rxProduct(1L, "阿莫西林胶囊", new BigDecimal("12.50"), 100));
+
+        mockMvc.perform(get("/product/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("阿莫西林胶囊")))
+                .andExpect(content().string(containsString("处方药")))
+                .andExpect(content().string(containsString("在线问诊购药")))
+                .andExpect(content().string(containsString("需医生在线问诊开具处方后凭处方单号购买")));
+    }
+
+    /** OTC 药品详情：普通购买入口，不提供在线问诊（AC-D1-2） */
+    @Test
+    void viewProduct_otc_showsDirectPurchaseOnly() throws Exception {
+        when(orderService.findProduct(1L)).thenReturn(product(1L, "布洛芬缓释胶囊", new BigDecimal("15.80"), 100));
+
+        mockMvc.perform(get("/product/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("立即购买")))
+                // 模板注释恒含「在线问诊购药/处方药」字样，须用渲染标记 rx-consult / rx-badge 断言未渲染
+                .andExpect(content().string(not(containsString("rx-consult"))))
+                .andExpect(content().string(not(containsString("rx-badge"))));
+    }
+
+    /**
+     * Rx 药品详情页不应提供「立即购买」直达下单入口（PRD FR-D1 / AC-D1-3：按钮为「在线问诊购药」而非「立即购买」）。
+     * 期望：Rx 详情无「立即购买」按钮；实际：模板无条件渲染「立即购买」（product.html 第 25-29 行 buy-form 无 th:if 守卫）
+     * → 已知真实缺陷，见 Bug 报告（不上修生产代码）。
+     */
+    @Test
+    void viewProduct_rx_shouldNotOfferDirectPurchase() throws Exception {
+        when(orderService.findProduct(1L)).thenReturn(rxProduct(1L, "阿莫西林胶囊", new BigDecimal("12.50"), 100));
+
+        mockMvc.perform(get("/product/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("立即购买"))));
+    }
+
     /* ==================== FR-2 确认订单 / 提交订单 ==================== */
 
     @Test
@@ -207,9 +255,46 @@ class ShopControllerTest {
                 .andExpect(content().string(containsString("购买数量超过库存")));
     }
 
+    /* ---- FR-P2 确认订单页：Rx 处方号输入框 ---- */
+
+    /** Rx 确认订单页：展示处方号输入框 + 「前往在线问诊」入口（AC-P2-2 展示侧） */
+    @Test
+    void confirmOrder_rx_showsPrescriptionNoInput() throws Exception {
+        when(orderService.findProduct(1L)).thenReturn(rxProduct(1L, "阿莫西林胶囊", new BigDecimal("12.50"), 100));
+
+        mockMvc.perform(get("/order/confirm").param("productId", "1").param("quantity", "1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("确认订单")))
+                .andExpect(content().string(containsString("处方单号")))
+                .andExpect(content().string(containsString("前往在线问诊")));
+    }
+
+    /** Rx 确认订单页：携带处方号 → 输入框预填（AC-P2-2） */
+    @Test
+    void confirmOrder_rx_withPrescriptionNo_prefills() throws Exception {
+        when(orderService.findProduct(1L)).thenReturn(rxProduct(1L, "阿莫西林胶囊", new BigDecimal("12.50"), 100));
+
+        mockMvc.perform(get("/order/confirm").param("productId", "1").param("prescriptionNo", "RX202608071234567890"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("RX202608071234567890")));
+    }
+
+    /** OTC 确认订单页：不展示处方号输入框（老流程不回归） */
+    @Test
+    void confirmOrder_otc_hidesPrescriptionNoInput() throws Exception {
+        when(orderService.findProduct(1L)).thenReturn(product(1L, "iPhone 15 Pro", new BigDecimal("7999.00"), 10));
+
+        mockMvc.perform(get("/order/confirm").param("productId", "1"))
+                .andExpect(status().isOk())
+                // 模板注释恒含「处方单号」字样，须用渲染标记 rx-prescription-group 断言输入框未渲染
+                .andExpect(content().string(not(containsString("rx-prescription-group"))));
+    }
+
     @Test
     void createOrder_ok_redirectsToOrderDetail() throws Exception {
-        when(orderService.createOrder(1L, 2, "张三", "13800000000", "北京市朝阳区"))
+        // 控制器提交前先查商品（Rx 判定），再调 6 参 createOrder
+        when(orderService.findProduct(1L)).thenReturn(product(1L, "iPhone 15 Pro", new BigDecimal("7999.00"), 10));
+        when(orderService.createOrder(1L, 2, "张三", "13800000000", "北京市朝阳区", null))
                 .thenReturn(order(OrderStatus.CREATED, "SO202608061000011111"));
 
         mockMvc.perform(post("/order")
@@ -223,7 +308,8 @@ class ShopControllerTest {
     /** 库存不足 → error 页回显（不落订单） */
     @Test
     void createOrder_insufficientStock_rendersError() throws Exception {
-        when(orderService.createOrder(1L, 3, "张三", "13800000000", "北京市朝阳区"))
+        when(orderService.findProduct(1L)).thenReturn(product(1L, "iPhone 15 Pro", new BigDecimal("7999.00"), 10));
+        when(orderService.createOrder(1L, 3, "张三", "13800000000", "北京市朝阳区", null))
                 .thenThrow(new BusinessException("库存不足，当前库存仅 2 件"));
 
         mockMvc.perform(post("/order")
@@ -232,6 +318,56 @@ class ShopControllerTest {
                         .param("receiverAddress", "北京市朝阳区"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("库存不足，当前库存仅 2 件")));
+    }
+
+    /* ---- Rx 处方药：在线问诊购药 ---- */
+
+    /** 处方药携带处方单号 → 正常下单（prescriptionNo 透传 6 参 createOrder） */
+    @Test
+    void createOrder_rxProduct_withPrescriptionNo_redirects() throws Exception {
+        when(orderService.findProduct(1L)).thenReturn(rxProduct(1L, "布洛芬", new BigDecimal("10.00"), 10));
+        when(orderService.createOrder(1L, 1, "张三", "13800000000", "北京市朝阳区", "RX202608071234567890"))
+                .thenReturn(order(OrderStatus.CREATED, "SO202608061000011111"));
+
+        mockMvc.perform(post("/order")
+                        .param("productId", "1").param("quantity", "1")
+                        .param("receiverName", "张三").param("receiverPhone", "13800000000")
+                        .param("receiverAddress", "北京市朝阳区")
+                        .param("prescriptionNo", "RX202608071234567890"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/order/SO202608061000011111"));
+    }
+
+    /** 处方药缺处方单号 → 回填确认页并上屏单字段错误（fail-closed，PRD FR-D1），不落单 */
+    @Test
+    void createOrder_rxProduct_missingPrescriptionNo_rerendersConfirmWithError() throws Exception {
+        when(orderService.findProduct(1L)).thenReturn(rxProduct(1L, "布洛芬", new BigDecimal("10.00"), 10));
+
+        mockMvc.perform(post("/order")
+                        .param("productId", "1").param("quantity", "1")
+                        .param("receiverName", "张三").param("receiverPhone", "13800000000")
+                        .param("receiverAddress", "北京市朝阳区"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("确认订单")))
+                .andExpect(content().string(containsString("处方药必须填写处方单号")));
+
+        verify(orderService, never()).createOrder(anyLong(), anyInt(), anyString(), anyString(), anyString(), any());
+    }
+
+    /** consult 服务不可用 → Rx 下单被拒（error 页回显，fail-closed，AC-IM-6 / NFR-11），不允许绕过 */
+    @Test
+    void createOrder_rx_consultUnavailable_rendersErrorFailClosed() throws Exception {
+        when(orderService.findProduct(1L)).thenReturn(rxProduct(1L, "阿莫西林胶囊", new BigDecimal("12.50"), 10));
+        when(orderService.createOrder(1L, 1, "张三", "13800000000", "北京市朝阳区", "RX202608071234567890"))
+                .thenThrow(new BusinessException("问诊服务不可用，请稍后重试"));
+
+        mockMvc.perform(post("/order")
+                        .param("productId", "1").param("quantity", "1")
+                        .param("receiverName", "张三").param("receiverPhone", "13800000000")
+                        .param("receiverAddress", "北京市朝阳区")
+                        .param("prescriptionNo", "RX202608071234567890"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("问诊服务不可用，请稍后重试")));
     }
 
     /* ---- 表单字段非法：校验失败回填确认页 ---- */
@@ -290,7 +426,7 @@ class ShopControllerTest {
                 .andExpect(content().string(containsString("购买数量必须大于 0")));
 
         // 校验失败必须回填确认页，不得调用下单（未落单）
-        verify(orderService, never()).createOrder(anyLong(), anyInt(), anyString(), anyString(), anyString());
+        verify(orderService, never()).createOrder(anyLong(), anyInt(), anyString(), anyString(), anyString(), any());
     }
 
     /** quantity=1000 → @Max 校验失败：回填确认页、不落单，且错误文案上屏（评审 P2 修复） */
@@ -308,7 +444,7 @@ class ShopControllerTest {
                 // P2 修复：数量校验失败时错误必须可见（th:errors 渲染 @Max 文案）
                 .andExpect(content().string(containsString("单次最多购买 999 件")));
 
-        verify(orderService, never()).createOrder(anyLong(), anyInt(), anyString(), anyString(), anyString());
+        verify(orderService, never()).createOrder(anyLong(), anyInt(), anyString(), anyString(), anyString(), any());
     }
 
     /** quantity 缺省（null）→ @NotNull 校验失败：回填确认页、不落单，且错误文案上屏（评审 P2 修复） */
@@ -326,7 +462,7 @@ class ShopControllerTest {
                 // P2 修复：数量缺省（null）时错误必须可见（th:errors 渲染 @NotNull 文案）
                 .andExpect(content().string(containsString("请填写购买数量")));
 
-        verify(orderService, never()).createOrder(anyLong(), anyInt(), anyString(), anyString(), anyString());
+        verify(orderService, never()).createOrder(anyLong(), anyInt(), anyString(), anyString(), anyString(), any());
     }
 
     /* ==================== FR-7 订单详情 + 同类推荐 ==================== */
@@ -373,6 +509,37 @@ class ShopControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("已取消")))
                 .andExpect(content().string(not(containsString("去支付"))));
+    }
+
+    /* ---- Rx 订单详情：处方号快照展示 ---- */
+
+    /** Rx 订单详情：展示处方单号快照（order.html 处方单号区块） */
+    @Test
+    void viewOrder_rx_showsPrescriptionNo() throws Exception {
+        Order o = order(OrderStatus.CREATED, "SO-RX-1");
+        o.setPrescriptionNo("RX202608071234567890");
+        when(orderService.findOrderByOrderNo("SO-RX-1")).thenReturn(o);
+        when(orderService.listOrderItems("SO-RX-1")).thenReturn(List.of(itemDTO()));
+        when(orderService.listProducts()).thenReturn(List.of());
+        when(recommendClient.recommendSimilar(any(), any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/order/SO-RX-1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("处方单号")))
+                .andExpect(content().string(containsString("RX202608071234567890")));
+    }
+
+    /** OTC 订单详情：不展示处方单号区块 */
+    @Test
+    void viewOrder_otc_hidesPrescriptionNo() throws Exception {
+        when(orderService.findOrderByOrderNo("SO1")).thenReturn(order(OrderStatus.CREATED, "SO1"));
+        when(orderService.listOrderItems("SO1")).thenReturn(List.of(itemDTO()));
+        when(orderService.listProducts()).thenReturn(List.of());
+        when(recommendClient.recommendSimilar(any(), any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/order/SO1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("处方单号"))));
     }
 
     /** 推荐为空（RecommendClient 返回空=降级）→ 推荐区块隐藏（th:if 生效） */

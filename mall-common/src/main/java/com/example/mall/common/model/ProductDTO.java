@@ -20,6 +20,12 @@ public class ProductDTO {
     private String imageUrl;
     /** 品类（同类商品推荐依据；老数据可能为 null） */
     private String category;
+
+    /**
+     * 是否处方药（Rx）：true=处方药，false=OTC 非处方药（默认）。
+     * fail-closed：老商品 / 缺失 Rx 标记一律按 OTC 处理，绝不允许被误判为处方药（PRD FR-D1）。
+     */
+    private boolean rxFlag = false;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -76,6 +82,14 @@ public class ProductDTO {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public boolean isRxFlag() {
+        return rxFlag;
+    }
+
+    public void setRxFlag(boolean rxFlag) {
+        this.rxFlag = rxFlag;
     }
 
     public LocalDateTime getCreatedAt() {

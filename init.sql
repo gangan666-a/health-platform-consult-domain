@@ -9,13 +9,16 @@
 CREATE DATABASE IF NOT EXISTS `shopdb_product` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS `shopdb_order`   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS `shopdb_payment` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS `shopdb_consult` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 授权给应用用户 shop（密码 shop123456），覆盖本机与 127.0.0.1 两种连接来源
 GRANT ALL PRIVILEGES ON `shopdb_product`.* TO 'shop'@'localhost';
 GRANT ALL PRIVILEGES ON `shopdb_order`.*   TO 'shop'@'localhost';
 GRANT ALL PRIVILEGES ON `shopdb_payment`.* TO 'shop'@'localhost';
+GRANT ALL PRIVILEGES ON `shopdb_consult`.* TO 'shop'@'localhost';
 GRANT ALL PRIVILEGES ON `shopdb_product`.* TO 'shop'@'127.0.0.1';
 GRANT ALL PRIVILEGES ON `shopdb_order`.*   TO 'shop'@'127.0.0.1';
 GRANT ALL PRIVILEGES ON `shopdb_payment`.* TO 'shop'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON `shopdb_consult`.* TO 'shop'@'127.0.0.1';
 
 FLUSH PRIVILEGES;

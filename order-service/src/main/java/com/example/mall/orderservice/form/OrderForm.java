@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * 下单表单：商品 + 数量 + 收货信息
@@ -26,6 +27,13 @@ public class OrderForm {
 
     @NotBlank(message = "请填写收货地址")
     private String receiverAddress;
+
+    /**
+     * 处方单号：仅处方药必填（Rx 校验在控制器针对 isRxFlag 单独做，此处只约束长度，
+     * 避免非处方单号超长；必填校验走 {@code rejectValue("prescriptionNo","rxRequired",...)}）。
+     */
+    @Size(max = 32, message = "处方单号过长")
+    private String prescriptionNo;
 
     public Long getProductId() {
         return productId;
@@ -65,5 +73,13 @@ public class OrderForm {
 
     public void setReceiverAddress(String receiverAddress) {
         this.receiverAddress = receiverAddress;
+    }
+
+    public String getPrescriptionNo() {
+        return prescriptionNo;
+    }
+
+    public void setPrescriptionNo(String prescriptionNo) {
+        this.prescriptionNo = prescriptionNo;
     }
 }

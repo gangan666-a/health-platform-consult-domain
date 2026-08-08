@@ -2,10 +2,12 @@ package com.example.mall.orderservice.service;
 
 import com.example.mall.common.exception.BusinessException;
 import com.example.mall.common.model.ConfirmPaymentRequest;
+import com.example.mall.common.model.ConsumePrescriptionItem;
 import com.example.mall.common.model.OrderDTO;
 import com.example.mall.common.model.OrderItemDTO;
 import com.example.mall.common.model.OrderStatus;
 import com.example.mall.common.model.ProductDTO;
+import com.example.mall.orderservice.client.ConsultClient;
 import com.example.mall.orderservice.client.PaymentClient;
 import com.example.mall.orderservice.client.ProductClient;
 import com.example.mall.orderservice.model.Order;
@@ -23,7 +25,11 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * 订单业务：编排商品服务（库存）与支付服务，自身只负责订单表。
+ * 订单业务：编排商品服务（库存）、问诊服务（处方消费/恢复）与支付服务，自身只负责订单表。
+ * <p>
+ * Rx 处方药购药走「扣库存 → 消费处方 → 本地落单」的 Saga 风格补偿：
+ * 扣库存成功但处方消费失败 → 回补库存；落单失败 → 先补偿恢复处方、再回补库存（P1-01）。
+ * 处方药必须携带处方单号，否则拒绝下单（fail-closed，PRD FR-D1）。
  */
 @Service
 public class OrderService {
@@ -35,11 +41,14 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductClient productClient;
     private final PaymentClient paymentClient;
+    private final ConsultClient consultClient;
 
-    public OrderService(OrderRepository orderRepository, ProductClient productClient, PaymentClient paymentClient) {
+    public OrderService(OrderRepository orderRepository, ProductClient productClient,
+                        PaymentClient paymentClient, ConsultClient consultClient) {
         this.orderRepository = orderRepository;
         this.productClient = productClient;
         this.paymentClient = paymentClient;
+        this.consultClient = consultClient;
     }
 
     /* ---------- 商品（代理到商品服务，供页面使用） ---------- */
@@ -57,13 +66,35 @@ public class OrderService {
     /* ---------- 订单 ---------- */
 
     /**
-     * 下单：校验数量 → 调用商品服务原子扣减库存 → 本地生成订单 + 明细快照。
-     * 跨服务无法保证强一致：若本地保存失败，尽力回补库存（补偿），
-     * 崩溃窗口内可能出现扣减未回补，属演示级的分布式事务限制（Saga/Outbox 为后续工作）。
+     * 非处方药下单（兼容旧入口）：委托 6 参方法，prescriptionNo 传 null。
      */
     @Transactional
     public Order createOrder(Long productId, int quantity,
                              String receiverName, String receiverPhone, String receiverAddress) {
+        return createOrder(productId, quantity, receiverName, receiverPhone, receiverAddress, null);
+    }
+
+    /**
+     * 下单（含 Rx 处方药）：校验数量 → 原子扣减库存 → 处方药先验单号再消费处方 → 本地生成订单 + 明细快照。
+     * <p>
+     * <b>执行顺序与补偿（Saga 风格，P1-01，fail-closed）</b>：
+     * <ol>
+     *   <li>先扣库存（原子扣减，失败抛库存不足）。</li>
+     *   <li>Rx 商品：校验 prescriptionNo 非空（缺失即拒绝，绝不放行无处方购药，PRD FR-D1）；
+     *       再调问诊服务一次性消费处方（CAS 防复用）。<b>扣库存成功但处方消费失败 → 回补库存</b>，
+     *       保持「库存扣了但处方没消费」不会悬空。</li>
+     *   <li>本地落单（save）。<b>落单失败 → 若已消费处方先恢复处方（USED→ACTIVE，P1-01 补偿），
+     *       再回补库存</b>，最后抛原始异常。恢复/回补均为 best-effort，失败仅记 ERROR 日志
+     *       留下可对账痕迹（含订单号/商品/数量，对账兜底见方案 §9.3 / 评审 R-07）。</li>
+     * </ol>
+     * 跨服务无法保证强一致：崩溃窗口内可能出现「已扣未补 / 已消费未恢复」，属演示级分布式事务限制
+     * （Saga/Outbox 为后续工作）。问诊服务不可用时 ConsultClient 抛出"问诊服务不可用"，
+     * 处方消费失败 → 回补库存后上抛，即 Rx 订单 fail-closed 被拒绝。
+     */
+    @Transactional
+    public Order createOrder(Long productId, int quantity,
+                             String receiverName, String receiverPhone, String receiverAddress,
+                             String prescriptionNo) {
         if (quantity <= 0) {
             throw new BusinessException("购买数量必须大于 0");
         }
@@ -75,8 +106,33 @@ public class OrderService {
         if (product.getStock() < quantity) {
             throw new BusinessException("库存不足，当前库存仅 " + product.getStock() + " 件");
         }
-        // 原子扣减（并发正确性唯一边界，失败会抛出库存不足异常）
+
+        // orderNo 需在消费处方前生成（P1-02 契约：consume 必须携带 orderNo 做归属校验）
+        String orderNo = generateOrderNo();
+
+        // 1) 原子扣减（并发正确性唯一边界，失败会抛出库存不足异常）
         productClient.deductStock(productId, quantity);
+
+        // 2) Rx 处方药：验单号 → 消费处方（一次性）；失败补偿回补库存
+        boolean rx = product.isRxFlag();
+        boolean prescriptionConsumed = false;
+        if (rx) {
+            if (prescriptionNo == null || prescriptionNo.isBlank()) {
+                // fail-closed：处方药无处方单号直接拒绝。此时库存已扣，先回补再抛错（P1-01）。
+                log.error("处方药未携带处方单号，拒绝下单。productId={}, quantity={}", productId, quantity);
+                restoreStockQuietly(productId, quantity, orderNo, "处方单号缺失");
+                throw new BusinessException("处方药必须填写处方单号");
+            }
+            List<ConsumePrescriptionItem> items = List.of(consumeItem(productId, quantity));
+            try {
+                consultClient.consumePrescription(prescriptionNo, orderNo, items);
+                prescriptionConsumed = true;
+            } catch (RuntimeException consumeEx) {
+                // 扣库存成功但处方消费失败 → 回补库存（P1-01），再抛消费异常（fail-closed）
+                restoreStockQuietly(productId, quantity, orderNo, "处方消费失败");
+                throw consumeEx;
+            }
+        }
 
         BigDecimal unitPrice = product.getPrice();
         BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(quantity));
@@ -86,13 +142,16 @@ public class OrderService {
         }
 
         Order order = new Order();
-        order.setOrderNo(generateOrderNo());
+        order.setOrderNo(orderNo);
         order.setReceiverName(receiverName);
         order.setReceiverPhone(receiverPhone);
         order.setReceiverAddress(receiverAddress);
         order.setTotalAmount(totalAmount);
         order.setStatus(OrderStatus.CREATED);
         order.setCreatedAt(LocalDateTime.now());
+        if (rx) {
+            order.setPrescriptionNo(prescriptionNo);
+        }
 
         OrderItem item = new OrderItem();
         item.setOrder(order);
@@ -106,21 +165,42 @@ public class OrderService {
         try {
             return orderRepository.save(order);
         } catch (RuntimeException ex) {
-            // 补偿：本地保存失败时回补库存（best-effort），先记录落库失败便于对账
-            log.error("下单落库失败，开始补偿回补库存。orderNo={}, productId={}, quantity={}",
-                    order.getOrderNo(), productId, quantity, ex);
-            try {
-                productClient.restoreStock(productId, quantity);
-            } catch (RuntimeException restoreEx) {
-                // 回补也失败：库存已扣但订单未落库，形成"已扣未补"悬挂库存。
-                // 取舍：不在此抛出新异常（本地事务已回滚，抛出根因 ex 即可，避免掩盖主因），
-                // 仅记 ERROR 日志留下可对账痕迹（含订单号/商品/数量，检索日志即可人工对账），
-                // 保证不产生脏数据、路径可观测。对账兜底见方案 §9.3 日志规范 / 评审 R-07。
-                log.error("库存回补失败，请人工对账。orderNo={}, productId={}, quantity={}",
-                        order.getOrderNo(), productId, quantity, restoreEx);
+            // 3) 落库失败 → 先补偿已消费的处方（USED→ACTIVE），再回补库存（P1-01），最后抛原始异常
+            log.error("下单落库失败，开始补偿。orderNo={}, productId={}, quantity={}, rx={}, prescriptionConsumed={}",
+                    orderNo, productId, quantity, rx, prescriptionConsumed, ex);
+            if (rx && prescriptionConsumed) {
+                try {
+                    consultClient.restorePrescription(prescriptionNo, orderNo);
+                } catch (RuntimeException restoreEx) {
+                    // 处方恢复失败：处方仍为 USED、订单已回滚，形成"已消费未恢复"悬挂处方。
+                    // 取舍：不抛新异常掩盖根因，仅记 ERROR 日志（含处方号/订单号）供人工对账。
+                    log.error("处方恢复失败，请人工对账。prescriptionNo={}, orderNo={}",
+                            prescriptionNo, orderNo, restoreEx);
+                }
             }
+            restoreStockQuietly(productId, quantity, orderNo, "落库失败");
             throw ex;
         }
+    }
+
+    /** 回补库存（best-effort）：失败仅记 ERROR 日志留下对账痕迹，不掩盖主因 */
+    private void restoreStockQuietly(Long productId, int quantity, String orderNo, String reason) {
+        try {
+            productClient.restoreStock(productId, quantity);
+        } catch (RuntimeException restoreEx) {
+            // 回补失败：库存已扣但订单未落库（或处方已消费），形成"已扣未补"悬挂库存。
+            // 取舍：不在此抛出新异常（本地事务已回滚，抛出根因即可，避免掩盖主因），
+            // 仅记 ERROR 日志（含订单号/商品/数量，检索日志即可人工对账），保证不产生脏数据、路径可观测。
+            log.error("库存回补失败（原因={}），请人工对账。orderNo={}, productId={}, quantity={}",
+                    reason, orderNo, productId, quantity, restoreEx);
+        }
+    }
+
+    private ConsumePrescriptionItem consumeItem(Long productId, int quantity) {
+        ConsumePrescriptionItem it = new ConsumePrescriptionItem();
+        it.setProductId(productId);
+        it.setQuantity(quantity);
+        return it;
     }
 
     @Transactional(readOnly = true)

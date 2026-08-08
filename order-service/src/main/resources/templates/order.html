@@ -32,6 +32,7 @@
         <div class="order-meta">
             <p>收货人：<span th:text="${order.receiverName}">姓名</span>　<span th:text="${order.receiverPhone}">手机号</span></p>
             <p>收货地址：<span th:text="${order.receiverAddress}">地址</span></p>
+            <p th:if="${order.prescriptionNo}">处方单号：<span class="prescription-no" th:text="${order.prescriptionNo}">RX...</span></p>
             <p th:if="${order.status.name()} == 'PAID'">
                 支付方式：<span th:text="${order.payMethod}">方式</span>
                 　支付时间：<span th:text="${#temporals.format(order.paidAt, 'yyyy-MM-dd HH:mm:ss')}">时间</span>

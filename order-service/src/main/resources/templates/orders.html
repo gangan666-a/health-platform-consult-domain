@@ -21,6 +21,8 @@
             <span th:each="item, st : ${order.items}">
                 <span th:text="${item.productName} + ' × ' + ${item.quantity}">商品 × 1</span><span th:if="${!st.last}">、</span>
             </span>
+            <span class="muted small" th:if="${order.prescriptionNo}"
+                  th:text="'（处方单号 ' + ${order.prescriptionNo} + '）'">（处方单号）</span>
         </div>
         <div class="order-card-foot">
             <span class="price" th:text="'¥' + ${#numbers.formatDecimal(order.totalAmount, 1, 2)}">¥0.00</span>

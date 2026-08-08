@@ -6,10 +6,13 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.example.mall.common.exception.BusinessException;
 import com.example.mall.common.model.ConfirmPaymentRequest;
+import com.example.mall.common.model.ConsumePrescriptionItem;
 import com.example.mall.common.model.OrderDTO;
 import com.example.mall.common.model.OrderItemDTO;
 import com.example.mall.common.model.OrderStatus;
+import com.example.mall.common.model.PrescriptionDTO;
 import com.example.mall.common.model.ProductDTO;
+import com.example.mall.orderservice.client.ConsultClient;
 import com.example.mall.orderservice.client.PaymentClient;
 import com.example.mall.orderservice.client.ProductClient;
 import com.example.mall.orderservice.model.Order;
@@ -35,6 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,6 +62,8 @@ class OrderServiceTest {
     private ProductClient productClient;
     @Mock
     private PaymentClient paymentClient;
+    @Mock
+    private ConsultClient consultClient;
 
     private OrderService orderService;
 
@@ -65,7 +71,7 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        orderService = new OrderService(orderRepository, productClient, paymentClient);
+        orderService = new OrderService(orderRepository, productClient, paymentClient, consultClient);
         logAppender = new ListAppender<>();
         logAppender.start();
         Logger logger = (Logger) LoggerFactory.getLogger(OrderService.class);
@@ -316,6 +322,221 @@ class OrderServiceTest {
 
         assertThat(orderNos).doesNotHaveDuplicates();
         orderNos.forEach(no -> assertThat(no).matches("^SO\\d{18}$"));
+    }
+
+    /* ================= Rx 处方药下单（F5：扣库存 → 消费处方 → 落单 + 补偿） ================= */
+
+    private ProductDTO rxProduct() {
+        ProductDTO p = product(7L, "处方药布洛芬", "10.00", 100);
+        p.setRxFlag(true);
+        return p;
+    }
+
+    private PrescriptionDTO prescription(String no, String orderNo) {
+        PrescriptionDTO dto = new PrescriptionDTO();
+        dto.setNo(no);
+        dto.setConsumedOrderNo(orderNo);
+        return dto;
+    }
+
+    /** Rx 商品成功下单：扣库存 + 消费处方（带 orderNo）+ 保存，订单绑定处方号 */
+    @Test
+    void createOrder_rxProduct_success_consumesPrescriptionAndSaves() {
+        when(productClient.getProduct(7L)).thenReturn(rxProduct());
+        when(consultClient.consumePrescription(anyString(), anyString(), any()))
+                .thenAnswer(inv -> prescription("RX202608071234567890", inv.getArgument(1)));
+        stubSaveReturnsArgument();
+
+        Order saved = orderService.createOrder(7L, 2, "张三", "13800000000", "北京市朝阳区", "RX202608071234567890");
+
+        assertThat(saved.getStatus()).isEqualTo(OrderStatus.CREATED);
+        assertThat(saved.getPrescriptionNo()).isEqualTo("RX202608071234567890");
+        // 扣库存 → 消费处方（订单号归属，P1-02）→ 保存
+        verify(productClient).deductStock(7L, 2);
+        verify(consultClient).consumePrescription(eq("RX202608071234567890"), anyString(), any());
+        verify(orderRepository).save(any(Order.class));
+    }
+
+    /** Rx 商品无处方单号 → fail-closed 拒绝，且已扣库存被回补 */
+    @Test
+    void createOrder_rxProduct_missingPrescriptionNo_rejectsAndRestoresStock() {
+        when(productClient.getProduct(7L)).thenReturn(rxProduct());
+
+        assertThatThrownBy(() -> orderService.createOrder(7L, 2, "张三", "138", "addr", null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("处方药必须填写处方单号");
+
+        // 扣库存已发生（任务顺序：先扣库存）→ 拒绝后回补，不消费处方、不落单
+        verify(productClient).deductStock(7L, 2);
+        verify(productClient).restoreStock(7L, 2);
+        verify(consultClient, never()).consumePrescription(anyString(), anyString(), any());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    /** 扣库存成功但处方消费失败 → 回补库存（P1-01），再抛消费异常（fail-closed） */
+    @Test
+    void createOrder_rxProduct_consumeFails_restoresStockAndRethrows() {
+        when(productClient.getProduct(7L)).thenReturn(rxProduct());
+        when(consultClient.consumePrescription(anyString(), anyString(), any()))
+                .thenThrow(new BusinessException("处方已使用，请重新问诊开具处方"));
+
+        assertThatThrownBy(() -> orderService.createOrder(7L, 2, "张三", "138", "addr", "RX202608071234567890"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("处方已使用，请重新问诊开具处方");
+
+        verify(productClient).deductStock(7L, 2);
+        verify(productClient).restoreStock(7L, 2); // 扣库存成功但消费失败 → 回补
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    /** Rx 商品落单失败 → 先恢复处方（USED→ACTIVE）、再回补库存（P1-01），抛原始异常 */
+    @Test
+    void createOrder_rxProduct_saveFails_restoresPrescriptionThenStock() {
+        when(productClient.getProduct(7L)).thenReturn(rxProduct());
+        when(consultClient.consumePrescription(anyString(), anyString(), any()))
+                .thenAnswer(inv -> prescription("RX202608071234567890", inv.getArgument(1)));
+        RuntimeException dbEx = new RuntimeException("DB down");
+        when(orderRepository.save(any(Order.class))).thenThrow(dbEx);
+
+        assertThatThrownBy(() -> orderService.createOrder(7L, 2, "张三", "138", "addr", "RX202608071234567890"))
+                .isInstanceOf(RuntimeException.class)
+                .isSameAs(dbEx);
+
+        // 补偿顺序：先恢复处方、再回补库存
+        verify(consultClient).restorePrescription(eq("RX202608071234567890"), anyString());
+        verify(productClient).restoreStock(7L, 2);
+
+        // 补偿前先记录落库失败日志
+        List<String> errors = errorLogs();
+        assertThat(errors).anyMatch(m -> m.contains("下单落库失败") && m.contains("productId=7"));
+    }
+
+    /** Rx 商品落单失败且处方恢复也失败 → 不掩盖根因，留 ERROR 日志（含处方号/订单号）对账 */
+    @Test
+    void createOrder_rxProduct_restoreFails_doesNotMaskRootCauseAndLogs() {
+        when(productClient.getProduct(7L)).thenReturn(rxProduct());
+        when(consultClient.consumePrescription(anyString(), anyString(), any()))
+                .thenAnswer(inv -> prescription("RX202608071234567890", inv.getArgument(1)));
+        when(consultClient.restorePrescription(anyString(), anyString()))
+                .thenThrow(new BusinessException("问诊服务不可用，请稍后重试"));
+        RuntimeException dbEx = new RuntimeException("DB down");
+        when(orderRepository.save(any(Order.class))).thenThrow(dbEx);
+
+        assertThatThrownBy(() -> orderService.createOrder(7L, 2, "张三", "138", "addr", "RX202608071234567890"))
+                .isInstanceOf(RuntimeException.class)
+                .isSameAs(dbEx);
+
+        // 处方恢复失败不抛新异常（避免掩盖根因），回补库存仍执行
+        verify(consultClient).restorePrescription(eq("RX202608071234567890"), anyString());
+        verify(productClient).restoreStock(7L, 2);
+        List<String> errors = errorLogs();
+        assertThat(errors).anyMatch(m -> m.contains("处方恢复失败")
+                && m.contains("prescriptionNo=RX202608071234567890"));
+    }
+
+    /** Rx 成功下单：消费处方调用参数精确匹配（prescriptionNo/orderNo/items 明细），保存的订单绑定同一 orderNo 与处方号快照 */
+    @Test
+    void createOrder_rxProduct_consumeArgsExactAndSavedOrderCarriesPrescriptionNo() {
+        when(productClient.getProduct(7L)).thenReturn(rxProduct());
+        when(consultClient.consumePrescription(anyString(), anyString(), any()))
+                .thenAnswer(inv -> prescription("RX202608071234567890", inv.getArgument(1)));
+        stubSaveReturnsArgument();
+
+        Order saved = orderService.createOrder(7L, 2, "张三", "13800000000", "北京市朝阳区", "RX202608071234567890");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ConsumePrescriptionItem>> itemsCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<String> orderNoCaptor = ArgumentCaptor.forClass(String.class);
+        verify(consultClient).consumePrescription(eq("RX202608071234567890"), orderNoCaptor.capture(), itemsCaptor.capture());
+
+        // consume 参数精确：prescriptionNo 精确、items 明细匹配（productId + quantity）
+        List<ConsumePrescriptionItem> items = itemsCaptor.getValue();
+        assertThat(items).hasSize(1);
+        assertThat(items.get(0).getProductId()).isEqualTo(7L);
+        assertThat(items.get(0).getQuantity()).isEqualTo(2);
+        String consumedOrderNo = orderNoCaptor.getValue();
+        assertThat(consumedOrderNo).matches("^SO\\d{18}$");
+
+        // 保存的订单：同一 orderNo + 处方号快照已持久化（AC-P2-1）
+        ArgumentCaptor<Order> savedCaptor = ArgumentCaptor.forClass(Order.class);
+        verify(orderRepository).save(savedCaptor.capture());
+        Order persisted = savedCaptor.getValue();
+        assertThat(persisted.getOrderNo()).isEqualTo(consumedOrderNo);
+        assertThat(persisted.getPrescriptionNo()).isEqualTo("RX202608071234567890");
+        assertThat(persisted.getStatus()).isEqualTo(OrderStatus.CREATED);
+        assertThat(saved.getPrescriptionNo()).isEqualTo("RX202608071234567890");
+
+        // 正常路径不回补库存
+        verify(productClient, never()).restoreStock(anyLong(), anyInt());
+    }
+
+    /** OTC 商品（即使携带处方号）→ 不消费处方、不恢复处方、订单不绑定处方号（老流程不回归，AC-P2-12） */
+    @Test
+    void createOrder_otcProduct_neverConsumesPrescriptionAndIgnoresPrescriptionNo() {
+        when(productClient.getProduct(1L)).thenReturn(product(1L, "iPhone 15 Pro", "0.1", 100));
+        stubSaveReturnsArgument();
+
+        Order saved = orderService.createOrder(1L, 2, "张三", "138", "addr", "RX202608071234567890");
+
+        // 关键断言：非 Rx 商品绝不触达处方服务（verify never）
+        verify(consultClient, never()).consumePrescription(anyString(), anyString(), any());
+        verify(consultClient, never()).restorePrescription(anyString(), anyString());
+        verify(productClient).deductStock(1L, 2);
+        verify(orderRepository).save(any(Order.class));
+        // 非 Rx 订单不写处方号快照
+        assertThat(saved.getPrescriptionNo()).isNull();
+    }
+
+    /** Rx 商品空白处方号（仅空格）→ 同样 fail-closed 拒绝并回补库存（缺失边界） */
+    @Test
+    void createOrder_rxProduct_blankPrescriptionNo_rejectsAndRestoresStock() {
+        when(productClient.getProduct(7L)).thenReturn(rxProduct());
+
+        assertThatThrownBy(() -> orderService.createOrder(7L, 2, "张三", "138", "addr", "   "))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("处方药必须填写处方单号");
+
+        verify(productClient).deductStock(7L, 2);
+        verify(productClient).restoreStock(7L, 2);
+        verify(consultClient, never()).consumePrescription(anyString(), anyString(), any());
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    /** consult 服务不可用 → Rx fail-closed 拒绝，回补库存、不落单（AC-IM-6 / NFR-11） */
+    @Test
+    void createOrder_rxProduct_consultUnavailable_rejectsFailClosed() {
+        when(productClient.getProduct(7L)).thenReturn(rxProduct());
+        when(consultClient.consumePrescription(anyString(), anyString(), any()))
+                .thenThrow(new BusinessException("问诊服务不可用，请稍后重试"));
+
+        assertThatThrownBy(() -> orderService.createOrder(7L, 2, "张三", "138", "addr", "RX202608071234567890"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("问诊服务不可用，请稍后重试");
+
+        verify(productClient).deductStock(7L, 2);
+        verify(productClient).restoreStock(7L, 2);
+        verify(orderRepository, never()).save(any(Order.class));
+    }
+
+    /** 落单失败补偿：恢复处方使用与消费同一 orderNo（P1-01 时序/归属一致），再回补库存 */
+    @Test
+    void createOrder_rxProduct_saveFails_restoreUsesSameOrderNoAsConsume() {
+        when(productClient.getProduct(7L)).thenReturn(rxProduct());
+        when(consultClient.consumePrescription(anyString(), anyString(), any()))
+                .thenAnswer(inv -> prescription("RX202608071234567890", inv.getArgument(1)));
+        when(orderRepository.save(any(Order.class))).thenThrow(new RuntimeException("DB down"));
+
+        assertThatThrownBy(() -> orderService.createOrder(7L, 2, "张三", "138", "addr", "RX202608071234567890"))
+                .isInstanceOf(RuntimeException.class);
+
+        ArgumentCaptor<String> consumedOrderNo = ArgumentCaptor.forClass(String.class);
+        verify(consultClient).consumePrescription(eq("RX202608071234567890"), consumedOrderNo.capture(), any());
+        ArgumentCaptor<String> restoredOrderNo = ArgumentCaptor.forClass(String.class);
+        verify(consultClient).restorePrescription(eq("RX202608071234567890"), restoredOrderNo.capture());
+        // 恢复处方的订单号 = 消费时的订单号（同一尝试的归属），补偿不跨单
+        assertThat(restoredOrderNo.getValue()).isEqualTo(consumedOrderNo.getValue());
+        // 落单失败补偿：先恢复处方、再回补库存
+        verify(productClient).restoreStock(7L, 2);
     }
 
     /* ================= 取消订单 cancelOrder ================= */

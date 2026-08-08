@@ -79,6 +79,23 @@ class ProductControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/products/{id} 详情 JSON 序列化 rxFlag（Rx=true / OTC=false，PRD FR-D1）")
+    void detail_rxFlagSerialized() throws Exception {
+        ProductDTO rx = dto(1L, 5);
+        rx.setRxFlag(true);
+        when(productService.getProduct(1L)).thenReturn(rx);
+        mockMvc.perform(get("/api/products/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rxFlag").value(true));
+
+        ProductDTO otc = dto(2L, 8);
+        when(productService.getProduct(2L)).thenReturn(otc);
+        mockMvc.perform(get("/api/products/2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rxFlag").value(false));
+    }
+
+    @Test
     @DisplayName("GET /api/products/{id} 不存在：400 + {\"message\":\"商品不存在\"}（设计 §3.1 定 400；任务期望 404，记录为待确认）")
     void detail_notFound() throws Exception {
         when(productService.getProduct(999L)).thenThrow(new BusinessException("商品不存在"));
