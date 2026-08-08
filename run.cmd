@@ -1,6 +1,6 @@
 @echo off
 rem ============================================================
-rem  一键启动：启动 MySQL → 建库 → 构建 → 启动四个微服务
+rem  一键启动：启动 MySQL → 建库 → 构建 → 启动五个微服务
 rem  用法：双击 run.cmd（首次会执行 Maven 打包，耗时约 1~2 分钟）
 rem
 rem  服务端口：
@@ -8,6 +8,7 @@ rem    product-service    http://localhost:8081
 rem    order-service      http://localhost:8082  （浏览器入口）
 rem    payment-service    http://localhost:8083
 rem    recommend-service  http://localhost:8084  （AI 智能导购，无需数据库）
+rem    consult-service    http://localhost:8085  REST / ws://localhost:8086  Netty WebSocket（在线问诊）
 rem ============================================================
 cd /d D:\work\0802\0802-4
 
@@ -32,7 +33,7 @@ if errorlevel 1 (
 
 rem ---------- 4. 构建全部模块 ----------
 if not exist product-service\target\product-service-0.0.1-SNAPSHOT.jar (
-    echo 首次运行：正在 Maven 打包（mall-common → 四个服务）...
+    echo 首次运行：正在 Maven 打包（mall-common → 五个服务）...
     call mvnw.cmd -DskipTests clean package
     if errorlevel 1 (
         echo [错误] 构建失败，请查看上方 Maven 日志。
@@ -43,15 +44,16 @@ if not exist product-service\target\product-service-0.0.1-SNAPSHOT.jar (
     echo 已存在构建产物，跳过打包。
 )
 
-rem ---------- 5. 启动四个服务（各自独立窗口） ----------
+rem ---------- 5. 启动五个服务（各自独立窗口） ----------
 start "product-service"    java -jar product-service\target\product-service-0.0.1-SNAPSHOT.jar
 start "order-service"      java -jar order-service\target\order-service-0.0.1-SNAPSHOT.jar
 start "payment-service"    java -jar payment-service\target\payment-service-0.0.1-SNAPSHOT.jar
 start "recommend-service"  java -jar recommend-service\target\recommend-service-0.0.1-SNAPSHOT.jar
+start "consult-service"    java -jar consult-service\target\consult-service-0.0.1-SNAPSHOT.jar
 
 rem ---------- 6. 等待服务就绪后打开浏览器 ----------
 echo.
-echo 正在启动四个服务，约 10 秒后自动打开浏览器（http://localhost:8082）...
+echo 正在启动五个服务，约 10 秒后自动打开浏览器（http://localhost:8082）...
 timeout /t 10 /nobreak >nul
 start http://localhost:8082
 echo.
@@ -60,3 +62,4 @@ echo   商品服务     http://localhost:8081/api/products
 echo   订单服务     http://localhost:8082
 echo   支付服务     http://localhost:8083/api/payments
 echo   推荐服务     http://localhost:8084/api/recommendations （AI 智能导购）
+echo   问诊服务     http://localhost:8085/api/consults （REST）/ ws://localhost:8086 （Netty WebSocket）
