@@ -1,5 +1,6 @@
 package com.example.mall.orderservice.client;
 
+import com.example.mall.common.trace.TraceContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -21,13 +22,17 @@ public class RestClientConfig {
     @Bean
     @Primary
     public RestClient.Builder restClientBuilder() {
-        return RestClient.builder().requestFactory(newRequestFactory(Duration.ofSeconds(5)));
+        return RestClient.builder()
+                .requestFactory(newRequestFactory(Duration.ofSeconds(5)))
+                .requestInterceptor(TraceContext.interceptor());
     }
 
     /** 推荐服务：下游可能等 DeepSeek（12s），read 放宽，但仍有上限 */
     @Bean
     public RestClient.Builder recommendRestClientBuilder() {
-        return RestClient.builder().requestFactory(newRequestFactory(Duration.ofSeconds(12)));
+        return RestClient.builder()
+                .requestFactory(newRequestFactory(Duration.ofSeconds(12)))
+                .requestInterceptor(TraceContext.interceptor());
     }
 
     private SimpleClientHttpRequestFactory newRequestFactory(Duration readTimeout) {

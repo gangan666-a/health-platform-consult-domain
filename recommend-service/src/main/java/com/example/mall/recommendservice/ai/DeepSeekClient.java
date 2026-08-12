@@ -1,5 +1,6 @@
 package com.example.mall.recommendservice.ai;
 
+import com.example.mall.common.trace.TraceContext;
 import com.example.mall.recommendservice.config.DeepSeekProperties;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -34,6 +35,7 @@ public class DeepSeekClient {
         this.restClient = RestClient.builder()
                 .baseUrl(props.getBaseUrl())
                 .requestFactory(factory)
+                .requestInterceptor(TraceContext.interceptor())
                 .build();
     }
 

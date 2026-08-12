@@ -3,6 +3,7 @@ package com.example.mall.paymentservice.client;
 import com.example.mall.common.exception.BusinessException;
 import com.example.mall.common.model.ConfirmPaymentRequest;
 import com.example.mall.common.model.OrderDTO;
+import com.example.mall.common.trace.TraceContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,7 @@ public class OrderClient {
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
                 .requestFactory(factory)
+                .requestInterceptor(TraceContext.interceptor())
                 .build();
     }
 

@@ -184,3 +184,21 @@ POST /api/recommendations
 ```
 
 > 本项目由 0802-3 微服务版扩展而来并新增 AI 导购；原单体代码保留在 0802-3 的 `simple-mall/` 目录作为参考。
+
+## GitNexus 代码知识图谱
+
+用 [GitNexus](https://github.com/abhigyanpatwari/GitNexus)（npm `gitnexus`，Java 核心支持）把本仓库索引成可查询的静态知识图谱（节点/调用边/跨服务 HTTP 契约），并带本地 Web UI。
+
+```bash
+# 安装（npm 11.x 必须全局装，勿用 npx）
+GITNEXUS_SKIP_OPTIONAL_GRAMMARS=1 npm install -g gitnexus@latest
+
+# 建索引（只写 .gitnexus/，不碰 AGENTS.md/CLAUDE.md）
+cd D:\work\0802\0802-4
+GITNEXUS_SKIP_OPTIONAL_GRAMMARS=1 GITNEXUS_LBUG_EXTENSION_INSTALL=load-only gitnexus analyze --index-only --skip-agents-md
+
+# 起 Web UI 看图谱（默认 http://localhost:4747，测完即停）
+gitnexus serve --port 4747
+```
+
+完整静态分析报告见 [`docs/trace/01-static-knowledge-graph.md`](docs/trace/01-static-knowledge-graph.md)。

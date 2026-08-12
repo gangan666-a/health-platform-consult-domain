@@ -1,0 +1,8 @@
+{
+  "analyze": {
+    "indexOnly": true,
+    "skipAgentsMd": true,
+    "embeddings": false,
+    "defaultBranch": "main"
+  }
+}

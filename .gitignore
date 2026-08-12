@@ -14,3 +14,7 @@ simple-mall/
 # 临时文件
 *.tmp
 *.log
+
+# GitNexus 代码知识图谱索引（gitnexus analyze 生成，本地可重建）
+.gitnexus/
+node_modules/
