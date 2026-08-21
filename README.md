@@ -185,6 +185,15 @@ POST /api/recommendations
 
 > 本项目由 0802-3 微服务版扩展而来并新增 AI 导购；原单体代码保留在 0802-3 的 `simple-mall/` 目录作为参考。
 
+## 🛠 SDD Harness（规格驱动开发）
+
+产品写 PRD → `/sdd` 转化为逐功能、可测试、可追溯的 **Spec**（`docs/spec/`）→ 代码以 Spec 为验收依据，形成 SDD 闭环。
+
+- 框架（管线/映射表/模板/质量门禁/追溯矩阵）：[`harness/`](harness/README.md)
+- 接入说明（文档流位置/使用方式）：[`docs/14-sdd-workflow.md`](docs/14-sdd-workflow.md)
+- 真实转化示例：`harness/sdd/examples/FR-2-place-order.spec.md`
+- 用法：在 Claude Code 中执行 `/sdd`（默认转化 `docs/01-PRD.md`）或 `/sdd FR-2`
+
 ## GitNexus 代码知识图谱
 
 用 [GitNexus](https://github.com/abhigyanpatwari/GitNexus)（npm `gitnexus`，Java 核心支持）把本仓库索引成可查询的静态知识图谱（节点/调用边/跨服务 HTTP 契约），并带本地 Web UI。
