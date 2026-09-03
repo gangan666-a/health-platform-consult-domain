@@ -7,33 +7,61 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.16</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
 
     <groupId>com.example</groupId>
-    <artifactId>simple-mall-ai-shopping-guide</artifactId>
+    <artifactId>health-platform</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>simple-mall（AI 智能导购）</name>
-    <description>简易商城 simple-mall（AI 智能导购）：商品服务 + 订单服务 + 支付服务 + AI 智能导购服务</description>
+    <name>health-platform-consult-domain（医疗买药问诊平台 · 问诊领域）</name>
+    <description>医疗买药问诊平台问诊领域：多 Agent 智能体（主体）+ 问诊领域九大基础服务（开处方/分配医生/分配药师/问诊记录/医生药师管理/排班/药品/工资结算/处方管理）。上游为导购领域，下游为订单领域。</description>
 
+    <!--
+      模块分层：
+      1. 共享库      mall-common
+      2. Agent 主体  agent-service（已实现，项目核心）
+      3. 问诊领域核心（已实现载体）  consult-service（问诊会话/IM/开方参考实现）、medicine-service（药品服务）
+      4. 问诊领域占位服务（暂无代码实现，实现要求见 harness/agents/）：
+         consult-record-service      问诊记录      :8090  shopdb_consult_record
+         prescription-service        开处方        :8091  shopdb_prescription
+         prescription-management-service 处方管理  :8092  shopdb_prescription_mgmt
+         doctor-assignment-service   分配医生      :8093  shopdb_doctor_assign
+         pharmacist-assignment-service 分配药师    :8094  shopdb_pharmacist_assign
+         staff-management-service    医生药师管理  :8095  shopdb_staff
+         scheduling-service          排班服务      :8096  shopdb_scheduling
+         salary-service              工资结算      :8097  shopdb_salary
+    -->
     <modules>
         <module>mall-common</module>
-        <module>product-service</module>
-        <module>order-service</module>
-        <module>payment-service</module>
-        <module>recommend-service</module>
+        <module>agent-service</module>
         <module>consult-service</module>
+        <module>medicine-service</module>
+        <module>consult-record-service</module>
+        <module>prescription-service</module>
+        <module>prescription-management-service</module>
+        <module>doctor-assignment-service</module>
+        <module>pharmacist-assignment-service</module>
+        <module>staff-management-service</module>
+        <module>scheduling-service</module>
+        <module>salary-service</module>
     </modules>
 
     <properties>
         <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-ai.version>1.0.0</spring-ai.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- 内部共享库：三个服务统一依赖 -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>com.example</groupId>
                 <artifactId>mall-common</artifactId>

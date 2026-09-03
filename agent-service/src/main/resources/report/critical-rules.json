@@ -1,0 +1,32 @@
+{
+  "rules": [
+    {"id": "GLU-CRIT-HIGH", "kind": "indicator", "indicators": ["GLU", "血糖", "葡萄糖"], "op": "GT", "value": 33.3,
+     "severity": "CRITICAL", "message": "血糖达到危急值水平（显著高于参考范围上限），存在高渗/酮症风险，请立即就医"},
+    {"id": "GLU-CRIT-LOW", "kind": "indicator", "indicators": ["GLU", "血糖", "葡萄糖"], "op": "LT", "value": 2.8,
+     "severity": "CRITICAL", "message": "血糖达到危急值水平（严重低血糖），可能出现意识障碍，请立即就医"},
+    {"id": "K-CRIT-HIGH", "kind": "indicator", "indicators": ["K", "血钾", "血清钾"], "op": "GT", "value": 6.5,
+     "severity": "CRITICAL", "message": "血钾显著升高，有心律失常风险，请立即就医"},
+    {"id": "K-CRIT-LOW", "kind": "indicator", "indicators": ["K", "血钾", "血清钾"], "op": "LT", "value": 2.8,
+     "severity": "CRITICAL", "message": "血钾显著降低，有肌无力/心律失常风险，请立即就医"},
+    {"id": "NA-CRIT-LOW", "kind": "indicator", "indicators": ["NA", "血钠", "血清钠"], "op": "LT", "value": 120,
+     "severity": "CRITICAL", "message": "血钠显著降低（重度低钠血症），可能出现意识改变，请立即就医"},
+    {"id": "HGB-CRIT-LOW", "kind": "indicator", "indicators": ["HGB", "血红蛋白"], "op": "LT", "value": 60,
+     "severity": "CRITICAL", "message": "血红蛋白显著降低（重度贫血），请尽快血液科就诊评估"},
+    {"id": "PLT-CRIT-LOW", "kind": "indicator", "indicators": ["PLT", "血小板"], "op": "LT", "value": 30,
+     "severity": "CRITICAL", "message": "血小板显著降低，出血风险高，请立即就医"},
+    {"id": "WBC-CRIT-HIGH", "kind": "indicator", "indicators": ["WBC", "白细胞"], "op": "GT", "value": 30,
+     "severity": "HIGH", "message": "白细胞显著升高，建议尽快就医排查感染或血液系统疾病"},
+    {"id": "WBC-CRIT-LOW", "kind": "indicator", "indicators": ["WBC", "白细胞"], "op": "LT", "value": 1.0,
+     "severity": "HIGH", "message": "白细胞显著降低，感染风险高，建议尽快就医"},
+    {"id": "ALT-CRIT-HIGH", "kind": "indicator", "indicators": ["ALT", "谷丙转氨酶"], "op": "GT", "value": 500,
+     "severity": "HIGH", "message": "转氨酶显著升高（超过参考上限 10 倍以上），提示急性肝损伤可能，请尽快就医"},
+    {"id": "CRE-CRIT-HIGH", "kind": "indicator", "indicators": ["CRE", "肌酐"], "op": "GT", "value": 442,
+     "severity": "HIGH", "message": "血肌酐显著升高，提示严重肾功能受损，请尽快肾内科就诊"},
+    {"id": "IMG-REDFLAG", "kind": "finding",
+     "keywords": ["占位", "恶性可能", "恶性待排", "毛刺", "建议进一步检查", "建议进一步诊治", "随访排除恶性", "血流信号丰富", "边界不清"],
+     "severity": "HIGH", "message": "检查所见提示存在需进一步排查的描述，请尽快携带报告到院就诊，由专科医生评估"},
+    {"id": "ECG-REDFLAG", "kind": "finding",
+     "keywords": ["心肌梗死", "心肌缺血", "恶性心律失常", "室速", "房颤", "传导阻滞"],
+     "severity": "CRITICAL", "message": "心电图结论提示需紧急评估的心电异常，请立即到心内科/急诊就诊"}
+  ]
+}

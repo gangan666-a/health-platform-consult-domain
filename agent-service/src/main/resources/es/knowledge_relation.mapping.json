@@ -1,0 +1,35 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "analysis": {
+      "analyzer": {
+        "ik": { "type": "custom", "tokenizer": "ik_max_word" }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "doc_id": { "type": "keyword" },
+      "relation_id": { "type": "keyword" },
+      "from_type": { "type": "keyword" },
+      "from_id": { "type": "keyword" },
+      "to_type": { "type": "keyword" },
+      "to_id": { "type": "keyword" },
+      "relation": { "type": "keyword" },
+      "polarity": { "type": "keyword" },
+      "weight": { "type": "float" },
+      "description": { "type": "text", "analyzer": "ik_max_word", "search_analyzer": "ik_smart" },
+      "source": { "type": "keyword" },
+      "evidence_grade": { "type": "keyword" },
+      "population": { "type": "keyword" },
+      "caveat": { "type": "text", "analyzer": "ik_max_word", "search_analyzer": "ik_smart" },
+      "version": { "type": "keyword" },
+      "agent_type": { "type": "keyword" },
+      "status": { "type": "keyword" },
+      "valid_from": { "type": "date", "format": "yyyy-MM-dd||strict_date_optional_time||epoch_millis" },
+      "updated_at": { "type": "date" }
+    }
+  }
+}

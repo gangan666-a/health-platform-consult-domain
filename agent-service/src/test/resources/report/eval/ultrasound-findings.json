@@ -1,0 +1,12 @@
+{
+  "name": "ultrasound-findings",
+  "fileName": "fubuchaosheng.pdf",
+  "pages": [
+    "#腹部超声\n超声所见：肝脏形态大小正常，包膜光滑，肝内见强回声斑\n超声提示：肝内钙化灶，建议随访"
+  ],
+  "expected": {
+    "examName": "腹部超声",
+    "indicators": [],
+    "findingKeywords": ["肝内钙化灶", "随访"]
+  }
+}

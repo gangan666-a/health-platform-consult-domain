@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.example</groupId>
+        <artifactId>health-platform</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>pharmacist-assignment-service</artifactId>
+    <name>pharmacist-assignment-service（分配药师服务）</name>
+    <description>问诊领域核心服务 · 分配药师：处方审核环节的药师调度（审方排队 + 执业药师匹配 + 超时转派）。占位模块，具体实现要求见 harness/agents/pharmacist-assignment-service.md</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>mall-common</artifactId>
+        </dependency>
+    </dependencies>
+</project>

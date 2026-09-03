@@ -1,0 +1,18 @@
+{
+  "name": "physical-multi-page",
+  "fileName": "2026健康体检报告.pdf",
+  "pages": [
+    "#健康体检\n姓名 张三 性别 男 年龄 30\n体检号 26080123",
+    "#血常规\n检验项目 结果 单位 参考范围\n白细胞计数 6.5 10^9/L 3.5-9.5\n血红蛋白 138 g/L 115-150\n空腹血糖 5.2 mmol/L 3.9-6.1",
+    "#总检结论\n总检结论：\n1. 血脂偏高，建议低脂饮食并复查血脂\n2. 其余各项检查大致正常"
+  ],
+  "expected": {
+    "examName": "健康体检",
+    "indicators": [
+      {"name": "WBC", "value": "6.5"},
+      {"name": "HGB", "value": "138"},
+      {"name": "GLU", "value": "5.2"}
+    ],
+    "findingKeywords": ["血脂偏高"]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "agent": "SCIENCE",
+  "cases": [
+    {"question": "高血脂是什么？严不严重？", "keyPoints": ["胆固醇"]},
+    {"question": "贫血一般是什么原因引起的？", "keyPoints": ["铁"]},
+    {"question": "尿酸高平时要注意什么？", "keyPoints": ["嘌呤"]}
+  ]
+}

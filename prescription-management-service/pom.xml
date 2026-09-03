@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.example</groupId>
+        <artifactId>health-platform</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>prescription-management-service</artifactId>
+    <name>prescription-management-service（处方管理服务）</name>
+    <description>问诊领域支撑服务 · 处方管理：处方全生命周期管理（审核流转、状态机、药师审方、处方归档与合规审计）。占位模块，具体实现要求见 harness/agents/prescription-management-service.md</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>mall-common</artifactId>
+        </dependency>
+    </dependencies>
+</project>

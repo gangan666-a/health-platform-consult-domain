@@ -1,42 +1,44 @@
 @echo off
 rem ============================================================
-rem  一键启动：启动 MySQL → 建库 → 构建 → 启动五个微服务
-rem  用法：双击 run.cmd（首次会执行 Maven 打包，耗时约 1~2 分钟）
+rem  医疗买药问诊平台 · 问诊领域：一键启动
+rem  （MySQL → 建库 → 构建 → 启动已实现服务；占位服务无实现不启动）
 rem
-rem  服务端口：
-rem    product-service    http://localhost:8081
-rem    order-service      http://localhost:8082  （浏览器入口）
-rem    payment-service    http://localhost:8083
-rem    recommend-service  http://localhost:8084  （AI 智能导购，无需数据库）
-rem    consult-service    http://localhost:8085  REST / ws://localhost:8086  Netty WebSocket（在线问诊）
+rem  已实现服务端口：
+rem    medicine-service   http://localhost:8081  药品服务
+rem    consult-service    http://localhost:8085  问诊会话/IM/开方（REST）
+rem                       ws://localhost:8086    （WebSocket）
+rem    agent-service      http://localhost:8087  多 Agent 智能体（项目主体）
+rem
+rem  问诊领域占位服务（实现要求见 harness/agents/，暂不启动）：
+rem    consult-record-service              :8090  问诊记录
+rem    prescription-service                :8091  开处方
+rem    prescription-management-service     :8092  处方管理
+rem    doctor-assignment-service           :8093  分配医生
+rem    pharmacist-assignment-service       :8094  分配药师
+rem    staff-management-service            :8095  医生药师管理
+rem    scheduling-service                  :8096  排班服务
+rem    salary-service                      :8097  工资结算
 rem ============================================================
 cd /d D:\work\0802\0802-4
 
-rem ---------- 1. 钉死 JDK 25（本机默认 JAVA_HOME 是 JDK 1.8，无法编译/运行） ----------
 set JAVA_HOME=D:\jdk25\jdk-25.0.2
 set PATH=%JAVA_HOME%\bin;%PATH%
 
-rem ---------- 2. 启动 MySQL（如未运行） ----------
 call D:\MySQL\start-mysql.cmd
 echo.
 
-rem ---------- 3. 检查数据库是否就绪（ddl-auto=update 只建表，不建库） ----------
-rem   三个库需先用 root/DBeaver 执行一次 init.sql，否则无法启动
 set MYSQL=D:\MySQL\mysql-8.4.5-winx64\bin\mysql.exe
-"%MYSQL%" -ushop -pshop123456 -e "USE shopdb_product" 2>nul
+"%MYSQL%" -ushop -pshop123456 -e "USE shopdb_medicine" 2>nul
 if errorlevel 1 (
-    echo [提示] 数据库 shopdb_product/order/payment 未就绪，请用 root 或 DBeaver 手动执行一次 init.sql：
-    echo    mysql -uroot -p < init.sql
-    echo    （本机 root 无密码，也可直接：mysql -uroot ^< init.sql）
+    echo [提示] 数据库未就绪，请用 root 执行一次 init.sql
     echo.
 )
 
-rem ---------- 4. 构建全部模块 ----------
-if not exist product-service\target\product-service-0.0.1-SNAPSHOT.jar (
-    echo 首次运行：正在 Maven 打包（mall-common → 五个服务）...
+if not exist medicine-service\target\medicine-service-0.0.1-SNAPSHOT.jar (
+    echo 首次运行：Maven 打包...
     call mvnw.cmd -DskipTests clean package
     if errorlevel 1 (
-        echo [错误] 构建失败，请查看上方 Maven 日志。
+        echo [错误] 构建失败
         pause
         exit /b 1
     )
@@ -44,22 +46,15 @@ if not exist product-service\target\product-service-0.0.1-SNAPSHOT.jar (
     echo 已存在构建产物，跳过打包。
 )
 
-rem ---------- 5. 启动五个服务（各自独立窗口） ----------
-start "product-service"    java -jar product-service\target\product-service-0.0.1-SNAPSHOT.jar
-start "order-service"      java -jar order-service\target\order-service-0.0.1-SNAPSHOT.jar
-start "payment-service"    java -jar payment-service\target\payment-service-0.0.1-SNAPSHOT.jar
-start "recommend-service"  java -jar recommend-service\target\recommend-service-0.0.1-SNAPSHOT.jar
-start "consult-service"    java -jar consult-service\target\consult-service-0.0.1-SNAPSHOT.jar
+start "medicine-service" java -jar medicine-service\target\medicine-service-0.0.1-SNAPSHOT.jar
+start "consult-service"  java -jar consult-service\target\consult-service-0.0.1-SNAPSHOT.jar
+start "agent-service"    java -jar agent-service\target\agent-service-0.0.1-SNAPSHOT.jar
 
-rem ---------- 6. 等待服务就绪后打开浏览器 ----------
 echo.
-echo 正在启动五个服务，约 10 秒后自动打开浏览器（http://localhost:8082）...
-timeout /t 10 /nobreak >nul
-start http://localhost:8082
+echo 正在启动三个已实现服务，约 15 秒后打开浏览器...
+timeout /t 15 /nobreak >nul
+start http://localhost:8087/api/agents/registry
 echo.
-echo 服务地址：
-echo   商品服务     http://localhost:8081/api/products
-echo   订单服务     http://localhost:8082
-echo   支付服务     http://localhost:8083/api/payments
-echo   推荐服务     http://localhost:8084/api/recommendations （AI 智能导购）
-echo   问诊服务     http://localhost:8085/api/consults （REST）/ ws://localhost:8086 （Netty WebSocket）
+echo   Agent 服务     http://localhost:8087/api/agents/registry
+echo   药品服务       http://localhost:8081/api/medicines
+echo   问诊 REST/WS   http://localhost:8085 / ws://localhost:8086

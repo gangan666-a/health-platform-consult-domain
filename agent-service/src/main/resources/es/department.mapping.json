@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "analysis": {
+      "analyzer": {
+        "ik": { "type": "custom", "tokenizer": "ik_max_word" }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "doc_id": { "type": "keyword" },
+      "dept_id": { "type": "keyword" },
+      "name": {
+        "type": "keyword",
+        "fields": {
+          "text": { "type": "text", "analyzer": "ik_max_word", "search_analyzer": "ik_smart" }
+        }
+      },
+      "alias": { "type": "keyword" },
+      "parent_id": { "type": "keyword" },
+      "symptom_ids": { "type": "keyword" },
+      "disease_ids": { "type": "keyword" },
+      "agent_type": { "type": "keyword" },
+      "status": { "type": "keyword" },
+      "updated_at": { "type": "date" },
+      "embedding": {
+        "type": "dense_vector",
+        "dims": 1024,
+        "similarity": "cosine",
+        "index": true,
+        "index_options": { "type": "hnsw", "m": 16, "ef_construction": 100 }
+      }
+    }
+  }
+}

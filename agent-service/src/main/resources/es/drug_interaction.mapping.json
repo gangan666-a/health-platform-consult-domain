@@ -1,0 +1,36 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "analysis": {
+      "analyzer": {
+        "ik": { "type": "custom", "tokenizer": "ik_max_word" }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "doc_id": { "type": "keyword" },
+      "interaction_id": { "type": "keyword" },
+      "drug_a": { "type": "keyword" },
+      "drug_b": { "type": "keyword" },
+      "interaction_type": { "type": "keyword" },
+      "severity": { "type": "keyword" },
+      "mechanism": { "type": "text", "analyzer": "ik_max_word", "search_analyzer": "ik_smart" },
+      "consequence": { "type": "text", "analyzer": "ik_max_word", "search_analyzer": "ik_smart" },
+      "advice": { "type": "text", "analyzer": "ik_max_word", "search_analyzer": "ik_smart" },
+      "content": { "type": "text", "analyzer": "ik_max_word", "search_analyzer": "ik_smart" },
+      "agent_type": { "type": "keyword" },
+      "status": { "type": "keyword" },
+      "updated_at": { "type": "date" },
+      "embedding": {
+        "type": "dense_vector",
+        "dims": 1024,
+        "similarity": "cosine",
+        "index": true,
+        "index_options": { "type": "hnsw", "m": 16, "ef_construction": 100 }
+      }
+    }
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "bundleVersion": "2026.09-1",
+  "rules": [
+    {
+      "id": "fatty-liver",
+      "version": "1.0.0",
+      "disease": "脂肪肝",
+      "department": "消化内科",
+      "required": [{"indicator": "ALT", "direction": "HIGH"}],
+      "anyOf": {"k": 1, "of": [
+        {"indicator": "AST", "direction": "HIGH"},
+        {"indicator": "GGT", "direction": "HIGH"},
+        {"indicator": "TG", "direction": "HIGH"}
+      ]},
+      "excluded": [{"indicator": "TBIL", "direction": "HIGH"}],
+      "context": ["AST", "GGT"],
+      "rationale": "ALT 为主、AST/GGT 轻中度升高提示脂肪肝；胆红素升高需先排除胆汁淤积与溶血",
+      "source": "内科学(第9版)"
+    },
+    {
+      "id": "drug-induced-liver-injury",
+      "version": "1.0.0",
+      "disease": "药物性肝损伤",
+      "department": "消化内科",
+      "required": [{"indicator": "ALT", "direction": "HIGH"}],
+      "anyOf": {"k": 1, "of": [
+        {"indicator": "AST", "direction": "HIGH"},
+        {"indicator": "ALP", "direction": "HIGH"},
+        {"indicator": "TBIL", "direction": "HIGH"}
+      ]},
+      "context": ["TBIL"],
+      "rationale": "必须有明确用药史与停药后恢复的时间关系；指标模式只能提示方向，不能替代用药史",
+      "source": "内科学(第9版)"
+    },
+    {
+      "id": "cholestasis",
+      "version": "1.0.0",
+      "disease": "胆汁淤积",
+      "department": "消化内科",
+      "required": [{"indicator": "TBIL", "direction": "HIGH"}],
+      "anyOf": {"k": 1, "of": [
+        {"indicator": "ALP", "direction": "HIGH"},
+        {"indicator": "GGT", "direction": "HIGH"},
+        {"indicator": "DBIL", "direction": "HIGH"}
+      ]},
+      "context": ["DBIL"],
+      "rationale": "需区分直接/间接胆红素：直接为主提示胆汁淤积，间接为主提示溶血或 Gilbert 综合征",
+      "source": "内科学(第9版)"
+    },
+    {
+      "id": "diabetes-fasting",
+      "version": "1.0.0",
+      "disease": "糖尿病",
+      "department": "内分泌科",
+      "required": [{"indicator": "GLU", "direction": "HIGH"}],
+      "excluded": [{"indicator": "GLU", "direction": "LOW"}],
+      "context": ["HBA1C"],
+      "rationale": "需非同日两次空腹血糖≥7.0 或 OGTT 确认，单次升高不能确诊",
+      "source": "中国2型糖尿病防治指南(2020)"
+    },
+    {
+      "id": "diabetes-hba1c",
+      "version": "1.0.0",
+      "disease": "糖尿病",
+      "department": "内分泌科",
+      "required": [{"indicator": "HBA1C", "direction": "HIGH"}],
+      "context": ["GLU"],
+      "rationale": "HbA1c≥6.5% 可作诊断依据，但需排除贫血、血红蛋白病干扰；妊娠期不可用 HbA1c 诊断",
+      "source": "中国2型糖尿病防治指南(2020)"
+    },
+    {
+      "id": "hypoglycemia",
+      "version": "1.0.0",
+      "disease": "低血糖",
+      "department": "内分泌科",
+      "required": [{"indicator": "GLU", "direction": "LOW"}],
+      "excluded": [{"indicator": "GLU", "direction": "HIGH"}],
+      "context": ["GLU"],
+      "rationale": "需结合症状（Whipple 三联征）；糖尿病患者低于 3.9 mmol/L 即按低血糖处理",
+      "source": "中国2型糖尿病防治指南(2020)"
+    },
+    {
+      "id": "iron-deficiency-anemia",
+      "version": "1.0.0",
+      "disease": "缺铁性贫血",
+      "department": "血液科",
+      "required": [{"indicator": "HGB", "direction": "LOW"}],
+      "anyOf": {"k": 1, "of": [
+        {"indicator": "FERR", "direction": "LOW"},
+        {"indicator": "FE", "direction": "LOW"},
+        {"indicator": "HCT", "direction": "LOW"},
+        {"indicator": "RBC", "direction": "LOW"}
+      ]},
+      "context": ["FERR"],
+      "rationale": "小细胞低色素性贫血需铁代谢指标确认；铁蛋白是最敏感指标，炎症或感染时可假性正常",
+      "source": "内科学(第9版)"
+    },
+    {
+      "id": "bacterial-infection",
+      "version": "1.0.0",
+      "disease": "细菌感染",
+      "department": "感染科",
+      "required": [{"indicator": "WBC", "direction": "HIGH"}],
+      "excluded": [{"indicator": "PLT", "direction": "LOW"}],
+      "context": ["CRP"],
+      "rationale": "白细胞升高需 CRP 佐证；血小板减少更提示血液系统疾病或凝血消耗，非细菌感染典型表现",
+      "source": "全国临床检验操作规程(第4版)"
+    },
+    {
+      "id": "thrombocytopenia",
+      "version": "1.0.0",
+      "disease": "血小板减少症",
+      "department": "血液科",
+      "required": [{"indicator": "PLT", "direction": "LOW"}],
+      "context": ["WBC", "HGB"],
+      "rationale": "先排除采血凝集造成的假性减少（EDTA 依赖）；伴白细胞或血红蛋白异常需警惕血液系统疾病",
+      "source": "血小板减少症诊疗专家共识"
+    },
+    {
+      "id": "chronic-kidney-disease",
+      "version": "1.0.0",
+      "disease": "慢性肾病",
+      "department": "肾内科",
+      "required": [{"indicator": "CRE", "direction": "HIGH"}],
+      "anyOf": {"k": 1, "of": [
+        {"indicator": "BUN", "direction": "HIGH"},
+        {"indicator": "UA", "direction": "HIGH"}
+      ]},
+      "context": ["BUN"],
+      "rationale": "需结合 eGFR 与尿常规；肌酐受肌肉量、年龄、性别影响，慢性判定还需与既往基线对比",
+      "source": "内科学(第9版)"
+    },
+    {
+      "id": "gout",
+      "version": "1.0.0",
+      "disease": "痛风",
+      "department": "风湿免疫科",
+      "required": [{"indicator": "UA", "direction": "HIGH"}],
+      "context": ["CRE"],
+      "rationale": "高尿酸血症≠痛风，仅约 10% 高尿酸者会发作；无症状者以生活方式干预为主",
+      "source": "内科学(第9版)"
+    },
+    {
+      "id": "hypothyroidism",
+      "version": "1.0.0",
+      "disease": "甲状腺功能减退",
+      "department": "内分泌科",
+      "required": [{"indicator": "TSH", "direction": "HIGH"}],
+      "excluded": [{"indicator": "FT4", "direction": "HIGH"}],
+      "context": ["FT4"],
+      "rationale": "TSH 升高而 FT4 正常为亚临床甲减；妊娠期目标范围不同",
+      "source": "内科学(第9版)"
+    },
+    {
+      "id": "hyperthyroidism",
+      "version": "1.0.0",
+      "disease": "甲状腺功能亢进",
+      "department": "内分泌科",
+      "required": [{"indicator": "TSH", "direction": "LOW"}],
+      "excluded": [{"indicator": "TSH", "direction": "HIGH"}],
+      "anyOf": {"k": 1, "of": [
+        {"indicator": "FT4", "direction": "HIGH"},
+        {"indicator": "FT3", "direction": "HIGH"}
+      ]},
+      "context": ["FT4"],
+      "rationale": "TSH 降低伴 FT4/FT3 升高为临床甲亢；仅 TSH 降低而 FT4 正常为亚临床甲亢",
+      "source": "内科学(第9版)"
+    },
+    {
+      "id": "atherosclerosis",
+      "version": "1.0.0",
+      "disease": "动脉粥样硬化",
+      "department": "心内科",
+      "required": [{"indicator": "LDL", "direction": "HIGH"}],
+      "anyOf": {"k": 1, "of": [
+        {"indicator": "TC", "direction": "HIGH"},
+        {"indicator": "TG", "direction": "HIGH"},
+        {"indicator": "HDL", "direction": "LOW"}
+      ]},
+      "context": ["HDL", "TG"],
+      "rationale": "LDL 升高需结合 HDL 与甘油三酯评估完整血脂谱；正在服用他汀者按治疗目标解读",
+      "source": "中国血脂管理指南(2023)"
+    }
+  ]
+}

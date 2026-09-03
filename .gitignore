@@ -18,3 +18,12 @@ simple-mall/
 # GitNexus 代码知识图谱索引（gitnexus analyze 生成，本地可重建）
 .gitnexus/
 node_modules/
+
+# 本地工具链与演示稿（不入库）
+.workbuddy/
+.claude/settings.json
+.claude/hooks/
+.claude/skills/implement/
+agent-pitch.html
+archify-guide.html
+sdd-harness.html

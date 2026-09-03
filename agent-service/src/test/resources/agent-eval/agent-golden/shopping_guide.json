@@ -1,0 +1,8 @@
+{
+  "agent": "SHOPPING_GUIDE",
+  "cases": [
+    {"question": "感冒了想买点药，买什么好？", "keyPoints": ["感冒"]},
+    {"question": "家里想备一个常用药箱，推荐哪些？", "keyPoints": ["退热"]},
+    {"question": "小孩退烧用什么药？", "keyPoints": ["对乙酰氨基酚"]}
+  ]
+}

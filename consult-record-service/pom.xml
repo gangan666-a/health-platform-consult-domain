@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.example</groupId>
+        <artifactId>health-platform</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>consult-record-service</artifactId>
+    <name>consult-record-service（问诊记录服务）</name>
+    <description>问诊领域核心服务 · 问诊记录：问诊会话全过程留痕、医患沟通记录落档、问诊历史查询与归档。占位模块，具体实现要求见 harness/agents/consult-record-service.md</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>mall-common</artifactId>
+        </dependency>
+    </dependencies>
+</project>

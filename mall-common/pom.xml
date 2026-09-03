@@ -5,13 +5,13 @@
 
     <parent>
         <groupId>com.example</groupId>
-        <artifactId>simple-mall-ai-shopping-guide</artifactId>
+        <artifactId>health-platform</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>mall-common</artifactId>
     <name>mall-common</name>
-    <description>共享库：业务异常、订单状态枚举、服务间 DTO</description>
+    <description>共享库：业务异常、问诊/处方/药品状态枚举、Agent 与服务间 DTO、动态埋点</description>
 
     <!-- 纯 jar 库，不打包可执行 fat jar，也不声明 spring-boot-maven-plugin -->
     <dependencies>

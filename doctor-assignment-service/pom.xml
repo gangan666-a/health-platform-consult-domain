@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.example</groupId>
+        <artifactId>health-platform</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>doctor-assignment-service</artifactId>
+    <name>doctor-assignment-service（分配医生服务）</name>
+    <description>问诊领域核心服务 · 分配医生：按科室/在线状态/排班与负载将问诊请求调度给合适医生（排队 + 接诊 + 转诊）。占位模块，具体实现要求见 harness/agents/doctor-assignment-service.md</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>mall-common</artifactId>
+        </dependency>
+    </dependencies>
+</project>

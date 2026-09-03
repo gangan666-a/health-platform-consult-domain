@@ -1,0 +1,9 @@
+{
+  "agent": "MEDICINE_QA",
+  "cases": [
+    {"question": "布洛芬应该怎么吃？", "keyPoints": ["餐后"]},
+    {"question": "吃头孢能喝酒吗？", "keyPoints": ["不能"]},
+    {"question": "对乙酰氨基酚一天最多能吃多少？", "keyPoints": ["肝"]},
+    {"question": "两种感冒药能一起吃吗？", "keyPoints": ["成分"]}
+  ]
+}

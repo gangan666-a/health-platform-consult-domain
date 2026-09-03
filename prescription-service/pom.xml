@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.example</groupId>
+        <artifactId>health-platform</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>prescription-service</artifactId>
+    <name>prescription-service（开处方服务）</name>
+    <description>问诊领域核心服务 · 开处方：医生在线开具处方（诊断 + 药品明细 + 用法用量），签名生效并联动处方流转。占位模块，具体实现要求见 harness/agents/prescription-service.md</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>mall-common</artifactId>
+        </dependency>
+    </dependencies>
+</project>

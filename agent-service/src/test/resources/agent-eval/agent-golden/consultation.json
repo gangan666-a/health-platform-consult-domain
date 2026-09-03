@@ -1,0 +1,10 @@
+{
+  "agent": "CONSULTATION",
+  "cases": [
+    {"question": "我最近一周总头晕乏力，可能是什么原因？", "keyPoints": ["血压", "贫血"]},
+    {"question": "发烧38.5度两天了怎么办？", "keyPoints": ["退热", "就医"]},
+    {"question": "孩子咳嗽一个星期了，需要去医院吗？", "keyPoints": ["医院"]},
+    {"question": "胸口有点闷，偶尔一两秒，要紧吗？", "keyPoints": ["就医"]},
+    {"question": "哺乳期感冒了能吃什么药？", "keyPoints": ["医生"]}
+  ]
+}

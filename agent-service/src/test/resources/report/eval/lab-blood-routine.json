@@ -1,0 +1,16 @@
+{
+  "name": "lab-blood-routine",
+  "fileName": "xuechanggui.pdf",
+  "pages": [
+    "#血常规\n检验项目 结果 单位 参考范围\n白细胞计数 6.5 10^9/L 3.5-9.5\n红细胞计数 4.8 10^12/L 3.8-5.8\n血红蛋白 138 g/L 115-150"
+  ],
+  "expected": {
+    "examName": "血常规",
+    "indicators": [
+      {"name": "WBC", "value": "6.5"},
+      {"name": "RBC", "value": "4.8"},
+      {"name": "HGB", "value": "138"}
+    ],
+    "findingKeywords": []
+  }
+}

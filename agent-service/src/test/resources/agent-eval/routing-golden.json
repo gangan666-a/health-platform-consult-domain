@@ -1,0 +1,20 @@
+{
+  "cases": [
+    {"input": "帮我看下这份血常规报告", "expect": "REPORT"},
+    {"input": "我的转氨酶偏高怎么办", "expect": "REPORT"},
+    {"input": "化验单上白细胞高了要紧吗", "expect": "REPORT"},
+    {"input": "帮我看下体检指标", "expect": "REPORT"},
+    {"input": "感冒了推荐买什么药", "expect": "SHOPPING_GUIDE"},
+    {"input": "去药店买退烧药选哪个", "expect": "SHOPPING_GUIDE"},
+    {"input": "帮我推荐一款止咳药", "expect": "SHOPPING_GUIDE"},
+    {"input": "布洛芬怎么吃", "expect": "MEDICINE_QA"},
+    {"input": "这个药有什么副作用", "expect": "MEDICINE_QA"},
+    {"input": "头孢和酒精有相互作用吗", "expect": "MEDICINE_QA"},
+    {"input": "高血压是什么病", "expect": "SCIENCE"},
+    {"input": "如何预防近视", "expect": "SCIENCE"},
+    {"input": "糖尿病的原理是什么", "expect": "SCIENCE"},
+    {"input": "我发烧咳嗽三天了", "expect": "CONSULTATION"},
+    {"input": "最近总头晕难受", "expect": "CONSULTATION"},
+    {"input": "你好", "expect": "CONSULTATION"}
+  ]
+}

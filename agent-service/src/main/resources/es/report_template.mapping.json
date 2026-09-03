@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "analysis": {
+      "analyzer": {
+        "ik": { "type": "custom", "tokenizer": "ik_max_word" }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "doc_id": { "type": "keyword" },
+      "template_id": { "type": "keyword" },
+      "template_name": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart",
+        "fields": { "keyword": { "type": "keyword" } }
+      },
+      "exam_category": { "type": "keyword" },
+      "field_mapping": { "type": "flattened" },
+      "layout": { "type": "keyword" },
+      "description": { "type": "text", "analyzer": "ik_max_word", "search_analyzer": "ik_smart" },
+      "agent_type": { "type": "keyword" },
+      "status": { "type": "keyword" },
+      "updated_at": { "type": "date" },
+      "embedding": {
+        "type": "dense_vector",
+        "dims": 1024,
+        "similarity": "cosine",
+        "index": true,
+        "index_options": { "type": "hnsw", "m": 16, "ef_construction": 100 }
+      }
+    }
+  }
+}
