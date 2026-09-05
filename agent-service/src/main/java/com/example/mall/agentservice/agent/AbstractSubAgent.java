@@ -53,7 +53,7 @@ public abstract class AbstractSubAgent implements SubAgent {
             return stubReply(userMessage, rag);
         }
 
-        ChatClient client = clientFactory.forAgent(type(), buildSystemPrompt(rag, session));
+        ChatClient client = clientFactory.forAgent(type(), buildSystemPrompt(rag, session, context));
         String memoryKey = AgentChatClientFactory.memoryKey(session.sessionId(), type());
         return callWithEscalation(client, tools(session), memoryKey, userMessage);
     }
@@ -85,7 +85,7 @@ public abstract class AbstractSubAgent implements SubAgent {
         return request.user(userMessage);
     }
 
-    private String buildSystemPrompt(String rag, AgentSession session) {
+    private String buildSystemPrompt(String rag, AgentSession session, AgentInvocationContext context) {
         StringBuilder sb = new StringBuilder(systemPrompt());
         String memory = memoryContext(session);
         if (memory != null && !memory.isBlank()) {
@@ -93,6 +93,12 @@ public abstract class AbstractSubAgent implements SubAgent {
         }
         if (rag != null && !rag.isBlank()) {
             sb.append("\n\n【知识库检索片段】\n").append(rag);
+        }
+        if (context != null && context.delegationNote() != null && !context.delegationNote().isBlank()) {
+            sb.append("\n\n【Manager 委派上下文（含会话要点）】\n").append(context.delegationNote());
+        }
+        if (context != null && context.handoffNote() != null && !context.handoffNote().isBlank()) {
+            sb.append("\n\n【交接纪要（上一 Agent 会话历史的总结，供接续参考）】\n").append(context.handoffNote());
         }
         return sb.toString();
     }

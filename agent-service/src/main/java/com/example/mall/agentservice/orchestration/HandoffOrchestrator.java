@@ -26,6 +26,7 @@ public class HandoffOrchestrator {
     private final HandoffTools handoffTools;
     private final AgentChatClientFactory clientFactory;
     private final AgentOrchestrationProperties properties;
+    private final HandoffSummaryService handoffSummary;
     private final boolean llmEnabled;
 
     public HandoffOrchestrator(SubAgentRegistry registry,
@@ -33,12 +34,14 @@ public class HandoffOrchestrator {
                                HandoffTools handoffTools,
                                AgentChatClientFactory clientFactory,
                                AgentOrchestrationProperties properties,
+                               HandoffSummaryService handoffSummary,
                                @Value("${spring.ai.openai.api-key:}") String apiKey) {
         this.registry = registry;
         this.safetyAgent = safetyAgent;
         this.handoffTools = handoffTools;
         this.clientFactory = clientFactory;
         this.properties = properties;
+        this.handoffSummary = handoffSummary;
         this.llmEnabled = AgentLlmSupport.isLlmEnabled(apiKey);
     }
 
@@ -66,7 +69,12 @@ public class HandoffOrchestrator {
 
         if (handoff && handoffTo != null && handoffTo != AgentType.MANAGER) {
             SubAgent next = registry.require(handoffTo);
+            // 总结后交接：上一 Agent 的会话历史先总结成纪要，随单注入接手方本轮上下文，
+            // 接手方拿到的是「总结后的上下文」，用户不必向新 Agent 复述一遍
+            context.setHandoffNote(handoffSummary.summarize(
+                    session.sessionId(), handoffFrom, context.handoffReason()));
             String followUp = next.handle(session, userMessage, context);
+            context.setHandoffNote("");
             content = content + "\n\n---\n\n" + followUp;
             active = handoffTo;
         } else if (handoff && handoffTo == AgentType.MANAGER) {

@@ -9,7 +9,6 @@ import com.example.mall.common.model.AgentType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -39,10 +38,6 @@ public class SafetyAgent {
 
     public AgentType type() {
         return AgentType.SAFETY;
-    }
-
-    public List<AgentType> handoffTargets() {
-        return List.of(AgentType.CONSULTATION);
     }
 
     /**

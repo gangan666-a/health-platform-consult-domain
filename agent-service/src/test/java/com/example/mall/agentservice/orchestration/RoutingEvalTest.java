@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 路由金标评测（L3，CI 必跑门禁）：钉住启发式路由的行为契约——
- * 路由规则重构（或切换为 LLM 路由）后此门禁保证 16 条金标输入的分发结果不变。
+ * 路由规则重构（或切换为 LLM 路由）后此门禁保证 19 条金标输入的分发结果不变
+ * （16 条专业域 + 3 条超意图 → MANAGER 兜底）。
  */
 class RoutingEvalTest {
 

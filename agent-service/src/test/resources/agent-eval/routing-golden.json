@@ -15,6 +15,9 @@
     {"input": "糖尿病的原理是什么", "expect": "SCIENCE"},
     {"input": "我发烧咳嗽三天了", "expect": "CONSULTATION"},
     {"input": "最近总头晕难受", "expect": "CONSULTATION"},
-    {"input": "你好", "expect": "CONSULTATION"}
+    {"input": "你好", "expect": "CONSULTATION"},
+    {"input": "你们这个平台都能干什么", "expect": "MANAGER"},
+    {"input": "我要投诉", "expect": "MANAGER"},
+    {"input": "转人工客服", "expect": "MANAGER"}
   ]
 }

@@ -25,7 +25,7 @@ public class ShoppingGuideAgent extends AbstractSubAgent {
 
     @Override
     public List<AgentType> handoffTargets() {
-        return List.of(AgentType.MEDICINE_QA, AgentType.CONSULTATION, AgentType.SAFETY);
+        return List.of(AgentType.CONSULTATION, AgentType.MEDICINE_QA, AgentType.SCIENCE, AgentType.REPORT);
     }
 
     @Override

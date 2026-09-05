@@ -37,6 +37,13 @@ public class AgentChatClientFactory {
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build());
     }
 
+    /** 一次性调用客户端（不带会话记忆顾问）：用于交接纪要总结等辅助 LLM 任务 */
+    public ChatClient forOneShot(String systemPrompt) {
+        return ChatClient.builder(chatModel)
+                .defaultSystem(systemPrompt)
+                .build();
+    }
+
     public AgentSessionStore sessionStore() {
         return sessionStore;
     }

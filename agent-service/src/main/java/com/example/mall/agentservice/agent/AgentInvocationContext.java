@@ -16,6 +16,10 @@ public class AgentInvocationContext {
     private String handoffReason;
     private final List<AgentType> trace = new ArrayList<>();
     private String ragContext = "";
+    /** Manager 委派时附带的会话要点（组织上下文），随委派注入 Sub Agent 本轮 system prompt */
+    private String delegationNote = "";
+    /** handoff 交接纪要（上一 Agent 会话历史的总结），注入接手 Agent 本轮 system prompt */
+    private String handoffNote = "";
 
     public void addTrace(AgentType agent) {
         trace.add(agent);
@@ -54,5 +58,21 @@ public class AgentInvocationContext {
 
     public void setRagContext(String ragContext) {
         this.ragContext = ragContext != null ? ragContext : "";
+    }
+
+    public String delegationNote() {
+        return delegationNote;
+    }
+
+    public void setDelegationNote(String delegationNote) {
+        this.delegationNote = delegationNote != null ? delegationNote : "";
+    }
+
+    public String handoffNote() {
+        return handoffNote;
+    }
+
+    public void setHandoffNote(String handoffNote) {
+        this.handoffNote = handoffNote != null ? handoffNote : "";
     }
 }

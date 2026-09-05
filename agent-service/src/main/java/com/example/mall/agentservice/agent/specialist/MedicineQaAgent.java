@@ -31,7 +31,7 @@ public class MedicineQaAgent extends AbstractSubAgent {
 
     @Override
     public List<AgentType> handoffTargets() {
-        return List.of(AgentType.CONSULTATION, AgentType.SHOPPING_GUIDE, AgentType.SAFETY);
+        return List.of(AgentType.CONSULTATION, AgentType.SHOPPING_GUIDE, AgentType.SCIENCE, AgentType.REPORT);
     }
 
     @Override

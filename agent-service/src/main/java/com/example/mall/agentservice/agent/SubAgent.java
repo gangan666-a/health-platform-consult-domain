@@ -12,7 +12,11 @@ public interface SubAgent {
 
     AgentType type();
 
-    /** 允许 handoff 的目标 Agent（不含 MANAGER、SAFETY） */
+    /**
+     * 允许 handoff 的目标 Agent 白名单：五个专家 Agent 全互连（各含其余四方）。
+     * 不含 MANAGER（走 HandoffTools 的 handoffToManager 专用工具）、
+     * 不含 SAFETY（安全 Agent 是每条消息的前置 fail-closed 审查，不是路由参与者）。
+     */
     List<AgentType> handoffTargets();
 
     /**

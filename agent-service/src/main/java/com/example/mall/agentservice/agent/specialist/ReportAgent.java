@@ -40,7 +40,7 @@ public class ReportAgent extends AbstractSubAgent {
 
     @Override
     public List<AgentType> handoffTargets() {
-        return List.of(AgentType.CONSULTATION, AgentType.MEDICINE_QA);
+        return List.of(AgentType.CONSULTATION, AgentType.MEDICINE_QA, AgentType.SHOPPING_GUIDE, AgentType.SCIENCE);
     }
 
     @Override
