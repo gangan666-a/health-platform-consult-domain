@@ -95,4 +95,58 @@ class HealthFactCardTest {
         assertEquals(2, back.facts().size(), "JSON 往返必须保留事实，实际: " + json);
         assertTrue(back.facts().stream().anyMatch(f -> f.type() == HealthFactCard.FactType.ALLERGY));
     }
+
+    private static HealthFactCard.FactEntry opinion(String topic, String content, LocalDate date) {
+        return new HealthFactCard.FactEntry(HealthFactCard.FactType.OPINION,
+                topic, content, null, date, date, date);
+    }
+
+    @Test
+    void mergeOpinion_sameTopicLatestWins_keepsFirstSeen() {
+        HealthFactCard card = new HealthFactCard()
+                .setFacts(new ArrayList<>(List.of(opinion("剂型偏好", "怕苦，不想吃片剂", D1))));
+
+        card.merge(List.of(opinion("剂型偏好", "倾向外用药", D2)), TODAY);
+
+        assertEquals(1, card.facts().size(), "同主题观点只保留最新一条");
+        HealthFactCard.FactEntry entry = card.facts().get(0);
+        assertEquals("倾向外用药", entry.value(), "观点可变，最新表达覆盖");
+        assertEquals(D1, entry.firstSeen(), "首次表达时间保留");
+    }
+
+    @Test
+    void mergeOpinion_differentTopics_coexist() {
+        HealthFactCard card = new HealthFactCard();
+        card.merge(List.of(
+                opinion("剂型偏好", "倾向外用药", D1),
+                opinion("治疗态度", "倾向食疗优先", D2)), TODAY);
+
+        assertEquals(2, card.facts().size(), "不同主题的观点各自保留");
+    }
+
+    @Test
+    void opinionCap_prunesOldestBeyondTen() {
+        List<HealthFactCard.FactEntry> initial = new ArrayList<>();
+        for (int i = 1; i <= 11; i++) {
+            initial.add(opinion("主题" + i, "内容" + i, LocalDate.of(2026, 8, i)));
+        }
+        HealthFactCard card = new HealthFactCard().setFacts(new ArrayList<>(initial));
+
+        card.merge(List.of(), TODAY);
+
+        assertEquals(10, card.facts().size(), "观点只保最近 10 条");
+        assertTrue(card.facts().stream().noneMatch(f -> "主题1".equals(f.name())), "最旧观点被裁剪");
+        assertTrue(card.facts().stream().anyMatch(f -> "主题11".equals(f.name())), "最新观点保留");
+    }
+
+    @Test
+    void deriveSummary_containsOpinions() {
+        HealthFactCard card = new HealthFactCard()
+                .setFacts(new ArrayList<>(List.of(opinion("剂型偏好", "倾向外用药", D1))));
+
+        String summary = card.deriveSummary();
+
+        assertTrue(summary.contains("近期观点"));
+        assertTrue(summary.contains("剂型偏好"));
+    }
 }

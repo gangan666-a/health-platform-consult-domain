@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * 视觉通道配置（GLM VLM，智谱 OpenAI 兼容协议 https://open.bigmodel.cn/api/paas/v4）：
  * model=免费档 glm-4.6v-flash；fallback-model=付费档 glm-4.6v（免费档并发溢出/调用失败时升级）。
+ * 模型/端点来源：.claude/llm-switch.json（role=vision），由 sync-llm-model hook 渲染，勿硬编码。
  * api-key 留空 → 视觉通道未接入（Mock 明确未识别，不虚构）。
  */
 @ConfigurationProperties(prefix = "agent.report.vision")

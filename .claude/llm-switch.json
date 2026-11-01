@@ -1,0 +1,23 @@
+{
+  "_comment": "升级/兜底模型单一事实源。由 .claude/hooks/sync-llm-model.py 渲染为 agent-service/src/main/resources/llm-models.properties。改这里即可切换模型与升级模型，无需动 Java。apiKey 仅作展示，只放 ${ENV} 占位，不渲染进 properties。",
+  "providers": [
+    {
+      "role": "chat",
+      "name": "DeepSeek",
+      "website": "https://platform.deepseek.com",
+      "baseUrl": "https://api.deepseek.com",
+      "apiKey": "${DEEPSEEK_API_KEY:placeholder-local-dev}",
+      "model": "deepseek-v4-flash",
+      "escalationModel": "deepseek-v4-pro"
+    },
+    {
+      "role": "vision",
+      "name": "智谱 GLM",
+      "website": "https://open.bigmodel.cn",
+      "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
+      "apiKey": "",
+      "model": "glm-4.6v-flash",
+      "escalationModel": "glm-4.6v"
+    }
+  ]
+}

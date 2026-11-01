@@ -37,6 +37,11 @@ public class HealthProfile {
     @Column(name = "fact_card")
     private String factCard;
 
+    /** L3 人物画像卡（JSON）：称呼/沟通风格/健康目标/偏好，见 UserPersonaCard */
+    @Lob
+    @Column(name = "persona_card")
+    private String personaCard;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -70,6 +75,14 @@ public class HealthProfile {
 
     public void setFactCard(String factCard) {
         this.factCard = factCard;
+    }
+
+    public String getPersonaCard() {
+        return personaCard;
+    }
+
+    public void setPersonaCard(String personaCard) {
+        this.personaCard = personaCard;
     }
 
     public LocalDateTime getUpdatedAt() {

@@ -18,7 +18,7 @@ public class LlmProviderProperties {
     /** 主供应商显示名（用于计量/日志标注），底层为自动装配的 spring.ai.openai 客户端。 */
     private String primaryName = "deepseek";
 
-    /** 主供应商托管的模型清单（模型亲和路由：请求模型名命中者优先路由，如 deepseek-chat/deepseek-reasoner）。 */
+    /** 主供应商托管的模型清单（模型亲和路由：请求模型名命中者优先路由，如 deepseek-v4-flash/deepseek-v4-pro）。 */
     private List<String> primaryModels = new ArrayList<>();
 
     /** 备用供应商（OpenAI 兼容）；baseUrl/apiKey 留空则跳过注册。 */

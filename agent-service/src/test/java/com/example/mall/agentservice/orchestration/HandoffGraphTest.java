@@ -29,11 +29,11 @@ class HandoffGraphTest {
     @Test
     void specialists_areFullyConnected_withoutSafetyBypass() {
         Map<AgentType, SubAgent> agents = new EnumMap<>(AgentType.class);
-        agents.put(AgentType.CONSULTATION, new ConsultationAgent(null, null, null, ""));
-        agents.put(AgentType.MEDICINE_QA, new MedicineQaAgent(null, null, null, ""));
+        agents.put(AgentType.CONSULTATION, new ConsultationAgent(null, null, null, null, null, ""));
+        agents.put(AgentType.MEDICINE_QA, new MedicineQaAgent(null, null, null, null, null, ""));
         agents.put(AgentType.SHOPPING_GUIDE, new ShoppingGuideAgent(null, null, ""));
         agents.put(AgentType.SCIENCE, new ScienceAgent(null, null, ""));
-        agents.put(AgentType.REPORT, new ReportAgent(null, null, null, null, ""));
+        agents.put(AgentType.REPORT, new ReportAgent(null, null, null, null, null, ""));
 
         for (SubAgent agent : agents.values()) {
             List<AgentType> targets = agent.handoffTargets();

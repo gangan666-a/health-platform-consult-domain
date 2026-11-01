@@ -7,6 +7,7 @@ import com.example.mall.agentservice.orchestration.tools.ReportTools;
 import com.example.mall.agentservice.rag.KnowledgeRetrievalService;
 import com.example.mall.agentservice.report.PromptGuard;
 import com.example.mall.agentservice.service.HealthMemoryService;
+import com.example.mall.agentservice.service.UserPersonaService;
 import com.example.mall.common.model.AgentType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -21,15 +22,18 @@ import java.util.List;
 public class ReportAgent extends AbstractSubAgent {
 
     private final HealthMemoryService healthMemory;
+    private final UserPersonaService personaService;
     private final ReportTools reportTools;
 
     public ReportAgent(AgentChatClientFactory clientFactory,
                        KnowledgeRetrievalService retrievalService,
                        HealthMemoryService healthMemory,
+                       UserPersonaService personaService,
                        ReportTools reportTools,
                        @Value("${spring.ai.openai.api-key:}") String apiKey) {
         super(clientFactory, retrievalService, apiKey);
         this.healthMemory = healthMemory;
+        this.personaService = personaService;
         this.reportTools = reportTools;
     }
 
@@ -71,6 +75,11 @@ public class ReportAgent extends AbstractSubAgent {
         if (session.userId() == null) {
             return "";
         }
-        return healthMemory.getProfile(session.userId());
+        String profile = healthMemory.getProfile(session.userId());
+        String persona = personaService.personaSection(session.userId());
+        if (persona.isBlank()) {
+            return profile;
+        }
+        return profile.isBlank() ? persona : profile + "\n\n" + persona;
     }
 }

@@ -21,9 +21,14 @@ node_modules/
 
 # 本地工具链与演示稿（不入库）
 .workbuddy/
-.claude/settings.json
-.claude/hooks/
 .claude/skills/implement/
 agent-pitch.html
 archify-guide.html
 sdd-harness.html
+
+# 门禁随仓库分发（T-6 埋点门禁 / T-8 模型切换门禁）：
+# hooks 目录只忽略临时产物（__pycache__ 等），门禁脚本与 settings.json 入库，保证 clone 后门禁可复现。
+.claude/hooks/*
+!.claude/hooks/check-instrumentation.py
+!.claude/hooks/sync-llm-model.py
+!.claude/settings.json

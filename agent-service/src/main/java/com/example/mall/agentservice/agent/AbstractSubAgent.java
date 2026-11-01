@@ -17,8 +17,9 @@ import java.util.List;
 
 /**
  * Sub Agent 基类：统一 LLM 调用、memory 隔离、RAG 注入、无 Key 占位回复。
- * 失败升级重试：主档模型调用失败时，用 agent.llm.escalation-model（如 deepseek-reasoner）
+ * 失败升级重试：主档模型调用失败时，用 agent.llm.escalation-model（如 deepseek-v4-pro）
  * 同供应商更强档重试一次（网关模型亲和路由会把该模型名送到声明托管它的供应商）；
+ * 升级模型来源：.claude/llm-switch.json（由 sync-llm-model hook 渲染 llm-models.properties）；
  * 留空关闭。仍失败则异常上抛，由各调用点既有降级接住（报告解读→占位回复）。
  */
 public abstract class AbstractSubAgent implements SubAgent {
@@ -29,7 +30,7 @@ public abstract class AbstractSubAgent implements SubAgent {
     protected final KnowledgeRetrievalService retrievalService;
     protected final boolean llmEnabled;
 
-    /** 失败升级模型（同供应商更强档，如 deepseek-reasoner）；留空关闭。 */
+    /** 失败升级模型（同供应商更强档，如 deepseek-v4-pro）；留空关闭。 */
     @Value("${agent.llm.escalation-model:}")
     protected String escalationModel;
 

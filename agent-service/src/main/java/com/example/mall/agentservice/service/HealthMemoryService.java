@@ -158,6 +158,28 @@ public class HealthMemoryService {
         return sb.toString();
     }
 
+    /**
+     * 患者主观观点段（L1 观点召回）：用户明确表达过的偏好/态度（OPINION 事实），
+     * 供问诊/问药沟通参考。与红线段分开标注——主观表达不是医学事实，不得据此做用药判断。
+     * 空则返回空串（基类仅在非空时追加到 system prompt）。
+     */
+    public String subjectiveSection(Long userId) {
+        List<HealthFactCard.FactEntry> opinions = getFacts(userId).stream()
+                .filter(f -> f.type() == HealthFactCard.FactType.OPINION)
+                .toList();
+        if (opinions.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder("【患者近期观点（主观表达，供沟通参考，非医学事实）】");
+        for (HealthFactCard.FactEntry f : opinions) {
+            sb.append("\n- ").append(f.name()).append("：").append(f.value() == null ? "" : f.value());
+            if (f.effectiveDate() != null) {
+                sb.append("（").append(f.effectiveDate()).append("）");
+            }
+        }
+        return sb.toString();
+    }
+
     private HealthFactCard readCard(String json) {
         if (json == null || json.isBlank()) {
             return new HealthFactCard();

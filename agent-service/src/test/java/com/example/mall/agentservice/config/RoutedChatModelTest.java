@@ -116,7 +116,7 @@ class RoutedChatModelTest {
         LlmUsageMeter meter = newMeter();
         ChatModel withUsage = prompt -> new ChatResponse(List.of(new Generation(new AssistantMessage("x"))),
                 org.springframework.ai.chat.metadata.ChatResponseMetadata.builder()
-                        .model("deepseek-chat")
+                        .model("deepseek-v4-flash")
                         .usage(new org.springframework.ai.chat.metadata.DefaultUsage(10, 20, 30))
                         .build());
         RoutedChatModel router = new RoutedChatModel(List.of(
@@ -142,7 +142,7 @@ class RoutedChatModelTest {
         ChatModel zhipu = okModel("glm-ok");
         RoutedChatModel router = new RoutedChatModel(List.of(
                 new RoutedChatModel.Candidate("deepseek", deepseek, permissiveLimiter("h"), breaker("h"),
-                        List.of("deepseek-chat", "deepseek-reasoner")),
+                        List.of("deepseek-v4-flash", "deepseek-v4-pro")),
                 new RoutedChatModel.Candidate("zhipu", zhipu, permissiveLimiter("i"), breaker("i"),
                         List.of("glm-4.7-flash", "glm-4.6v-flash", "glm-4.6v"))), meter);
 
@@ -163,7 +163,7 @@ class RoutedChatModelTest {
         };
         RoutedChatModel router = new RoutedChatModel(List.of(
                 new RoutedChatModel.Candidate("deepseek", okModel("ds-ok"), permissiveLimiter("j"), breaker("j"),
-                        List.of("deepseek-chat")),
+                        List.of("deepseek-v4-flash")),
                 new RoutedChatModel.Candidate("zhipu", brokenZhipu, permissiveLimiter("k"), breaker("k"),
                         List.of("glm-4.7-flash"))), meter);
 
@@ -178,7 +178,7 @@ class RoutedChatModelTest {
     void affinity_unknownModel_keepsDefaultOrder() {
         RoutedChatModel router = new RoutedChatModel(List.of(
                 new RoutedChatModel.Candidate("deepseek", okModel("ds-ok"), permissiveLimiter("l"), breaker("l"),
-                        List.of("deepseek-chat")),
+                        List.of("deepseek-v4-flash")),
                 new RoutedChatModel.Candidate("zhipu", okModel("glm-ok"), permissiveLimiter("m"), breaker("m"),
                         List.of("glm-4.7-flash"))), newMeter());
 

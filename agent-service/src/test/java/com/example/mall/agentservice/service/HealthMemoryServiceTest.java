@@ -55,4 +55,33 @@ class HealthMemoryServiceTest {
         service.recordFact(2L, HealthFactCard.FactType.ABNORMAL_INDICATOR, "LDL", "5.8");
         assertEquals("", service.redlineFactsSection(2L), "无过敏/用药/慢病时不应注入红线事实段");
     }
+
+    @Test
+    void opinionFact_latestWins_subjectiveSectionRenders() {
+        HealthProfile profile = new HealthProfile();
+        when(repo.findByUserId(3L)).thenReturn(Optional.of(profile));
+        when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.recordFact(3L, HealthFactCard.FactType.OPINION, "剂型偏好", "怕苦，不想吃片剂");
+        service.recordFact(3L, HealthFactCard.FactType.OPINION, "剂型偏好", "倾向外用药");
+
+        var facts = service.getFacts(3L).stream()
+                .filter(f -> f.type() == HealthFactCard.FactType.OPINION).toList();
+        assertEquals(1, facts.size(), "同主题观点最新覆盖");
+        assertEquals("倾向外用药", facts.get(0).value());
+
+        String section = service.subjectiveSection(3L);
+        assertTrue(section.contains("主观表达"));
+        assertTrue(section.contains("剂型偏好：倾向外用药"));
+    }
+
+    @Test
+    void subjectiveSection_emptyWhenNoOpinions() {
+        HealthProfile profile = new HealthProfile();
+        when(repo.findByUserId(4L)).thenReturn(Optional.of(profile));
+        when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.recordFact(4L, HealthFactCard.FactType.ALLERGY, "青霉素", null);
+        assertEquals("", service.subjectiveSection(4L), "只有红线事实时不应注入观点段");
+    }
 }
