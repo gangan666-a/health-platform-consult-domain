@@ -2,7 +2,31 @@
 
 > 从 Claude Code 源码工程哲学中提炼的可执行范式，落地到本项目，形成「产品 PRD → 高质量 Spec（需求与技术中态）→ 高质量代码」的规格驱动开发闭环。Spec 不只是一份业务契约，还是**研发方案**：术语对齐（§0）、业务域与统一规则（§2.5）、改造定位（§3.5，结合 GitNexus 静态图谱 + 动态埋点 trace）、分文件实施清单（§13）。
 
-## 背景：6 个源范式
+## 项目背景与目的：让速度和质量重新对齐
+
+在 vibe coding 提效背景下（AI 辅助编程让个人编码效率提升 30%–50%），效率是真的，但设计债也在累积。面向问诊域（2B 运营 + 2C 诊疗）的研发中，红利背后藏着三处暗礁：
+
+| 暗礁 | 表现 | Harness 对应机制 |
+| --- | --- | --- |
+| **代码质量漂移** | 写得快了，规范却松了：中间件随手 new、埋点漏加、分层边界模糊——AI 生成的代码最擅长「看起来对」，而不是「符合约定」 | 代码规则 C-x + 模块约束 `agents/<module>.md` DO/DON'T + PostToolUse 埋点 Hook 门禁（违规阻断，不靠自觉） |
+| **沟通熵增** | 产品和开发对同一句话常有不同理解，需求每传一手口径就多一分偏差，评审时经常发现双方讨论的不是同一件事 | 统一术语表 glossary + Spec 单一事实来源（两层诠释：业务上下文 → 工程上下文） |
+| **方案容易失真** | 直接让 AI 出方案，交上来的往往是「加几个接口」的套路，落不到具体代码坐标，评审只能凭感觉过 | 改造定位 §3.5（GitNexus 静态调用链 + 动态埋点 Trace 实测 file:line）+ 双质量门禁（PRD B-1~B-8 / Spec A~G） |
+
+> 问题不是 AI 让人变快，而是「快」开始挤占「想清楚」的空间。SDD Harness 就是那个让速度和质量重新平衡的机制：**Spec + 静态调用链（AST 级图谱）+ 动态 Trace + Hook 门禁**。
+
+### 目标：油门和刹车，一个都不能少
+
+核心目标只有一句话：**在提效的同时，保证代码质量不下降。质量和效率都要，且都要可量化。**
+
+| 指标 | 目标 | 可量化口径 |
+| --- | --- | --- |
+| 提效 | 保留 30-50% 编码提效收益 | 转化/实现由 LLM 执行、规则声明式外置，人工只做门禁复核；不引入串行人审瓶颈 |
+| 质量 | 代码质量 0 回退 | PRD 门禁 B-1~B-8 + Spec 门禁 A~G 全过才放行；agents DO/DON'T 约束实现 |
+| 可追溯 | 新增代码 100% 带埋点、可追溯 | Hook 门禁强制（T-6）+ COVERAGE 双向追溯矩阵覆盖率目标 100% |
+
+**目标公式**：**提效收益 × 质量约束 = 可持续的研发节奏。任何一边为零，另一边就失去了意义。**
+
+## 方法论来源：6 个源范式
 
 本项目 harness 工程源自对 Claude Code 源码的 6 个提炼（`~/.claude/skills/harness-*`）：
 
@@ -61,7 +85,7 @@ harness/
     └── README.md
 ```
 
-配套可执行入口：`.claude/skills/sdd/SKILL.md`（`/sdd` 指令）与 `.claude/skills/implement/SKILL.md`（`/implement` 指令）；埋点门禁 hook 在 `.claude/settings.json` + `.claude/hooks/check-instrumentation.py`。接入说明见 [`docs/14-sdd-workflow.md`](../docs/14-sdd-workflow.md)。
+配套可执行入口：`.claude/skills/sdd/SKILL.md`（`/sdd` 指令）与 `.claude/skills/implement/SKILL.md`（`/implement` 指令）；埋点门禁 hook 在 `.claude/settings.json` + `.claude/hooks/check-instrumentation.py`；模型切换门禁 hook（T-8）在 `.claude/settings.json` + `.claude/hooks/sync-llm-model.py`（单一事实源 `.claude/llm-switch.json`）。接入说明见 [`docs/14-sdd-workflow.md`](../docs/14-sdd-workflow.md)。
 
 ## 分层职责（知识 / 约束 / 管线 / 模板 / 工具）
 

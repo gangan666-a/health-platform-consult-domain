@@ -26,6 +26,13 @@ agent-pitch.html
 archify-guide.html
 sdd-harness.html
 
+# 个人学习素材（架构图 / 演示视频 / 视频构建产物，不入库）
+agent-arch-3.1.svg
+report-agent-arch-1.0.svg
+report-agent-arch-1.0.png
+report-agent-interview.mp4
+video-build/
+
 # 门禁随仓库分发（T-6 埋点门禁 / T-8 模型切换门禁）：
 # hooks 目录只忽略临时产物（__pycache__ 等），门禁脚本与 settings.json 入库，保证 clone 后门禁可复现。
 .claude/hooks/*

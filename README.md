@@ -105,6 +105,8 @@ start "agent"    java -jar agent-service\target\agent-service-0.0.1-SNAPSHOT.jar
 
 产品写 PRD → `/sdd` 转化为逐功能、可测试、可追溯的 **Spec**（`docs/spec/`）→ 代码以 Spec 为验收依据，形成 SDD 闭环。
 
+> 背景：在 vibe coding 提效（30%–50%）背景下，治理**代码质量漂移 / 沟通熵增 / 方案失真**三处暗礁——目标：保留提效收益的同时质量 0 回退、新增代码 100% 带埋点可追溯，让速度和质量重新对齐。详见 [`harness/README.md`](harness/README.md)「项目背景与目的」。
+
 - 框架（管线/映射表/模板/质量门禁/追溯矩阵）：[`harness/`](harness/README.md)
 - 模块约束（含 8 个占位服务的实现要求）：[`harness/agents/AGENTS.md`](harness/agents/AGENTS.md)
 - 接入说明（文档流位置/使用方式）：[`docs/14-sdd-workflow.md`](docs/14-sdd-workflow.md)

@@ -56,3 +56,12 @@
 - **双通道规则**：结构化版式（化验单/体检单/扫描 PDF）走 OCR 精确抽数值；复杂版式/影像走多模态兜底；解析不出的指标标 `UNKNOWN`，不猜默认。
 - **外部只读依赖**：参考范围对齐走 ES `lab_exam`，ES 不可用 → 本地默认规则标记并标注「参考范围未经校验」，不阻断落库。
 - **隐私**：入库/入 prompt 前脱敏（剥离 PII）；解读 prompt 数据最小化；报告数据不用于 LLM 训练（依赖服务商协议/私有化，设计约束）。
+
+## T-8 模型切换单一事实源（升级 / 兜底模型）
+
+- **单一事实源**：所有"切更强模型"的配置只允许来自 `.claude/llm-switch.json`（cc-switch 风格，每供应商字段：`role`（`chat`|`vision`）/ `name` / `website` / `baseUrl` / `apiKey` / `model` / `escalationModel`）。**禁止**在 `application.properties`、Java、文档里硬编码模型名。
+- **渲染与消费**：`.claude/hooks/sync-llm-model.py` 幂等渲染为 `agent-service/src/main/resources/llm-models.properties`（确定性顺序 + LF），经 `spring.config.import=optional:classpath:llm-models.properties` 被 Spring 消费；**主与测试 properties 都要挂该 import**（测试资源整文件遮蔽主配置，漏挂会静默沿用旧值）。
+- **两条升级链同源**：LLM 升级（`AbstractSubAgent` → `agent.llm.escalation-model`）与视觉升级（`GlmVisionAnalyzer` → `agent.report.vision.fallback-model`）读同一份渲染结果；换更强模型 = 改 JSON 一行，Java 零改动。
+- **强制执行（不靠自觉）**：`sync-llm-model.py`（PostToolUse 命中 `.claude/llm-switch.json`；SessionStart 对齐渲染）——role 非法 / 字段缺失 / 出现停用模型名（`deepseek-chat`、`deepseek-reasoner`）→ exit 2 阻断并回喂模型自纠（fail-closed）；SessionStart 不能 block，仅对齐。手工复跑：`python .claude/hooks/sync-llm-model.py --check`。
+- **密钥不进渲染**：`apiKey` 仅作展示（只填 `${ENV}` 占位），真实 Key 仍走 `application.properties` 的 `${DEEPSEEK_API_KEY:...}`，避免密钥复制成两份。
+- **模型名时效**：DeepSeek 已于 2026-07-24 停用 `deepseek-chat` / `deepseek-reasoner`（映射 V4 Flash/Pro）；当前主档 `deepseek-v4-flash`、升级档 `deepseek-v4-pro`。

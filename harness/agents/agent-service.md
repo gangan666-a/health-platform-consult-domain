@@ -59,3 +59,4 @@
 - 测试：`agent-service/src/test/...`（编排/工具/降级用例）。
 - 回归：全量 `clean test` 全绿；起 `start-agent.cmd` 后直接 `POST http://localhost:8087/api/agents/chat` 验证（无 Key → 占位回复，`activeAgent`/`orchestrationMode` 回填）。
 - 依赖：配置 `agent.deepseek.api-key` 与 `spring.elasticsearch.uris`（留空可本地联调占位）。
+- 模型（T-8）：主档 / 升级（更强）模型 / 视觉模型来自 `.claude/llm-switch.json`，由 `sync-llm-model` hook 渲染 `llm-models.properties` 并经 `spring.config.import` 消费——**勿在 properties 手工改模型名**，改 JSON 即可。

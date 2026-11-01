@@ -204,6 +204,7 @@
 
 - **决策**：推荐任务选 `deepseek-v4-flash`（费用约 pro 的 1/3，推荐类任务无需深度推理）；显式 `thinking={"type":"disabled"}` 使 `temperature` 生效且理由直接出现在 `content`；`response_format={"type":"json_object"}` 强制结构化输出。
 - **理由**：推荐 = 从目录挑商品 + 一句话理由，flash 够用且快；关闭思考保证响应稳定可解析；JSON 模式 + 服务端三层校验（第 5.5 / 7 章）是防幻觉的关键闭环。
+- **迁移（2026-07）**：DeepSeek 于 2026-07-24 硬性停用 `deepseek-chat` / `deepseek-reasoner`（官方映射到 V4 Flash/Pro）。全仓模型名已迁至 `deepseek-v4-flash` / `deepseek-v4-pro`；主模型与升级模型统一由 `.claude/llm-switch.json` 经 `sync-llm-model` hook 渲染为 `llm-models.properties`（T-8），改一处即切模型。
 
 ---
 

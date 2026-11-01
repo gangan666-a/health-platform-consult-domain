@@ -11,6 +11,10 @@
 
 SDD 补齐这一层：**每个 Feature 一份 Spec**，把 PRD 的可测验收 + 方案的契约细节 + 代码现状对齐，收敛成「这个功能必须满足什么、怎么验证、在哪里改、守什么规则」的**需求与技术中态**单一事实来源，代码输出以 Spec 为准。
 
+### 背景与目的：vibe coding 提效下的三处暗礁
+
+AI 辅助编程让个人编码效率提升 30%–50%，但设计债也在同步累积：**代码质量漂移**（中间件随手 new、埋点漏加、分层边界模糊，「看起来对」≠「符合约定」）、**沟通熵增**（产品与开发对同一句话口径不一，评审时讨论的不是同一件事）、**方案失真**（AI 出的方案是「加几个接口」的套路，落不到具体代码坐标）。SDD Harness 用「**Spec + 静态调用链图谱（AST 级）+ 动态 Trace + Hook 门禁**」一一对应：Spec 治沟通熵增，静态+动态证据的改造定位治方案失真，Hook 门禁 + agents 约束治质量漂移。目标是**保留 30-50% 提效收益的同时，代码质量 0 回退、新增代码 100% 带埋点可追溯**——提效收益 × 质量约束 = 可持续的研发节奏（完整表述见 [`harness/README.md`](../harness/README.md) 「项目背景与目的」）。
+
 ## SDD 在现有文档流中的位置
 
 ```
@@ -78,5 +82,5 @@ docs/04-test-plan.md / 05-test-report.md（测试计划与执行，用例追溯�
 - 模块约束：`harness/agents/`（AGENTS.md + 8 个模块约束文件）已就绪，谁改哪个模块就加载哪份。
 - Spec 模板：`harness/assets/spec-template.md` 已升级为 14 章节（新增 §0 术语对齐 / §2.5 业务域与规则 / §3.5 改造定位 / §13 研发方案）。
 - 示例：`harness/assets/examples/FR-2-place-order.spec.md` 由 `docs/01-PRD.md` FR-2 转化，已验证新增章节（§0/§3.5/§13）用法，含 2 个 OPEN 待澄清项（EX-6 已实现未回填、库存文案口径）。
-- 实现闭环：`.claude/skills/implement/SKILL.md`（`/implement`）把 REVIEWED Spec 落地为代码；`.claude/settings.json` + `.claude/hooks/check-instrumentation.py`（PostToolUse）强制埋点（T-6）门禁。
+- 实现闭环：`.claude/skills/implement/SKILL.md`（`/implement`）把 REVIEWED Spec 落地为代码；`.claude/settings.json` + `.claude/hooks/check-instrumentation.py`（PostToolUse）强制埋点（T-6）门禁；`.claude/hooks/sync-llm-model.py`（PostToolUse 命中 `.claude/llm-switch.json` + SessionStart）强制模型切换单一事实源（T-8）。
 - 待办：对 PRD 其余 FR（FR-1/3/4/5/6/7/8/9）逐一跑 `/sdd` 产出 Spec；IM 迭代（docs/07-PRD-IM.md）按需单独转化；每次转化按 Stage 6a 增量回写知识层；REVIEWED Spec 用 `/implement` 落地并验证。

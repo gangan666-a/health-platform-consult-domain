@@ -24,7 +24,7 @@ M1 已交付「浏览商品 → 下单 → 模拟支付 → AI 智能导购」�
 - **REPORT 已是 Sub Agent**：`ReportAgent` 现有 System Prompt 文本，但**缺少**「上传→解析→解读→记忆→对比」整条管线，无独立持久化。
 - **agent-service 无数据库**：本期新增 `shopdb_agent`，建报告 / 指标明细 / 健康档案三表。
 - **ES 已有知识索引**：`lab_exam` 等 10 个医学知识索引已建，`lab_exam` 内含 NESTED 指标参考范围（`indicators.ref_range`），供参考范围对齐。
-- **AI 能力**：DeepSeek `deepseek-chat`（兼容 OpenAI，无视觉/无 Embedding），未配 Key 时 Agent 走占位回复。
+- **AI 能力**：DeepSeek `deepseek-v4-flash`（兼容 OpenAI，无视觉/无 Embedding），未配 Key 时 Agent 走占位回复。
 - **隐私合规（产品红线）**：报告数据**不用于 LLM 训练**；prompt 只发必要报告内容、剥离 PII；授权 + 脱敏；回复客观中立、严谨、带免责声明。
 
 ---

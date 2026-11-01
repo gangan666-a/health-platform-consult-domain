@@ -10,6 +10,7 @@
 | GitNexus | `gitnexus status`（索引状态）<br>`gitnexus analyze --index-only --skip-agents-md`（重建索引，见 docs/trace/01 §7）<br>`gitnexus context <裸符号名>`（360° 视图，JSON）<br>`gitnexus query "<概念>"`（概念搜，FTS 降级） | /sdd Step 0/3a；/implement Step 0/2 | `symbol.filePath/startLine` + `incoming/outgoing.calls[].filePath` → §3.5 现状调用链 + 待改造清单「证据来源」列 | 未装/索引过期/not found → grep/Glob 实测，证据标「代码阅读（grep 实测）」 |
 | grep / Glob | `grep -rn "<符号>" <module>/src` | 改造定位；/implement 复验 | 精确 file:line | 基座，无降级 |
 | python（埋点 hook） | `python .claude/hooks/check-instrumentation.py` | 代码生成门禁（PostToolUse，matcher Write\|Edit\|MultiEdit） | T-6 合规校验；exit 0=pass / 2=block（fail-closed，stdout 回喂模型自纠） | hook 基建故障 → exit 0 不阻断会话；手工复跑：`--check <file>` |
+| python（模型同步 hook） | `python .claude/hooks/sync-llm-model.py`（+ `--check` / `--render`） | 模型配置门禁 + 渲染（PostToolUse 命中 `.claude/llm-switch.json`；SessionStart 对齐） | T-8 合规校验 + 幂等渲染 `agent-service/src/main/resources/llm-models.properties`；exit 0=pass / 2=block | 校验失败 exit 2 阻断（fail-closed）；SessionStart 仅对齐不阻断；手工复跑：`--check` |
 | Maven | `./mvnw.cmd -pl <module> -am compile`<br>`./mvnw.cmd -pl <module> test -Dtest=<Class>` | /implement Step 5 | 编译/单测结果 | 不起微服务；`clean` 前先结束占用 jar 的 java 进程 |
 | curl / python（动态 trace） | 见 docs/trace/03 §1/§2：`-H "X-Trace-Id: <id>"` | /implement 可选验证；测试阶段 | traceId 串联日志 | 需起服务；默认留到测试阶段 |
 
